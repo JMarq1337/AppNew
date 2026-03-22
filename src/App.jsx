@@ -7956,6 +7956,13 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
 
 /* ── TABS ─────────────────────────────────────────────────────── */
 const TABS=[{id:"collection",label:"Cellar",ic:"wine"},{id:"audit",label:"Audit",ic:"audit"},{id:"ai",label:"Sommelier",ic:"chat"},{id:"notes",label:"Journal",ic:"note"},{id:"profile",label:"Summary",ic:"user"}];
+const TAB_META={
+  collection:{eyebrow:"Cellar",description:"Track inventory, search across locations, and manage the live cellar with cleaner scanning."},
+  audit:{eyebrow:"Audit",description:"Run location checks, verify bottle counts, and keep storage accuracy operational."},
+  ai:{eyebrow:"Sommelier",description:"Use live cellar data to ask smarter drinking, readiness, and rotation questions."},
+  notes:{eyebrow:"Journal",description:"Read and edit tasting notes in a calmer editorial list-detail workspace."},
+  profile:{eyebrow:"Summary",description:"Review collection value, readiness, activity, and winery settings in one place."},
+};
 
 /* ── APP ──────────────────────────────────────────────────────── */
 export default function App(){
@@ -9268,74 +9275,99 @@ export default function App(){
   );
 
   const displayName=[profile.name,profile.surname].filter(Boolean).join(" ")||profile.name||"Winemaker";
+  const activeTabMeta=TAB_META[tab]||TAB_META.collection;
+  const activeTabLabel=TABS.find(tb=>tb.id===tab)?.label||"Vinology";
+  const shellCollection=wines.filter(w=>!w?.wishlist);
+  const shellValue=shellCollection.reduce((sum,w)=>sum+((safeNum(w?.cellarMeta?.rrp)||0)*Math.max(0,Math.round(safeNum(w?.bottles)||0))),0);
+  const shellReady=shellCollection.filter(w=>wineReadiness(w).key==="ready").length;
+  const shellLocations=new Set(shellCollection.map(w=>normalizeLocation(w?.location||"")).filter(Boolean)).size;
+  const shellOpenAudits=readAudits().filter(a=>(a?.status||"")==="in_progress").length;
+  const shellNavButtonClass=active=>`relative flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left text-[13.5px] font-semibold tracking-[-0.01em] transition-all duration-200 ${
+    active
+      ? "border-[rgba(var(--accentRgb),0.18)] bg-[rgba(var(--accentRgb),0.08)] text-[var(--text)] shadow-[0_12px_24px_rgba(64,45,36,0.08)]"
+      : "border-transparent text-[var(--sub)] hover:border-[rgba(96,73,63,0.08)] hover:bg-[rgba(96,73,63,0.04)]"
+  }`;
+  const shellBottomTabClass=active=>`flex flex-col items-center gap-1 rounded-2xl border px-3 py-2 transition-all duration-200 ${
+    active
+      ? "border-[rgba(var(--accentRgb),0.16)] bg-[rgba(var(--accentRgb),0.08)] text-[var(--text)] shadow-[0_10px_18px_rgba(64,45,36,0.08)]"
+      : "border-transparent bg-transparent text-[var(--sub)]"
+  }`;
 
   if(isDesktop) return(
-    <div style={{...cssVars,background:"radial-gradient(circle at 10% -10%,rgba(var(--accentRgb),.08),transparent 34%), radial-gradient(circle at 120% 10%,rgba(89,99,73,0.06),transparent 28%), var(--bg)",height:"100vh",display:"flex",overflow:"hidden",fontFamily:"'Plus Jakarta Sans',sans-serif",color:"var(--text)"}}>
+    <div style={cssVars} className="flex h-screen overflow-hidden bg-[radial-gradient(circle_at_10%_-10%,rgba(var(--accentRgb),0.08),transparent_34%),radial-gradient(circle_at_120%_10%,rgba(89,99,73,0.06),transparent_28%),var(--bg)] font-['Plus_Jakarta_Sans',sans-serif] text-[var(--text)]">
       <style>{CSS}</style>
-      <div style={{width:258,flexShrink:0,background:"rgba(251,247,241,0.72)",display:"flex",flexDirection:"column",padding:"24px 16px 18px",borderRight:"1px solid rgba(96,73,63,0.1)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6,paddingLeft:8}}>
+      <aside className="flex w-[286px] shrink-0 flex-col border-r border-[rgba(96,73,63,0.1)] bg-[rgba(251,247,241,0.76)] px-4 pb-5 pt-6 backdrop-blur-xl">
+        <div className="mb-2 flex items-center gap-3 px-3">
           <BrandLogo size={32}/>
-          <span style={{fontSize:20,fontWeight:800,color:"var(--text)",letterSpacing:"-0.5px"}}>Vinology</span>
+          <span className="text-[21px] font-[800] tracking-[-0.03em] text-[var(--text)]">Vinology</span>
         </div>
-        <div style={{paddingLeft:8,fontSize:10,color:"var(--sub)",fontWeight:700,letterSpacing:"1.2px",textTransform:"uppercase",marginBottom:14}}>Workspace</div>
-        <nav style={{flex:1,display:"flex",flexDirection:"column",gap:6}}>
+        <div className="mb-4 px-3 text-[11px] font-[700] uppercase tracking-[0.18em] text-[var(--sub)]">Collector Workspace</div>
+        <div className="mb-4 rounded-[28px] border border-[rgba(96,73,63,0.1)] bg-[linear-gradient(180deg,rgba(var(--accentRgb),0.1),rgba(var(--accentRgb),0.03)_56%,rgba(255,252,248,0.88))] px-4 py-4 shadow-[0_18px_34px_rgba(64,45,36,0.08)]">
+          <div className="text-[11px] font-[700] uppercase tracking-[0.18em] text-[var(--sub)]">{activeTabMeta.eyebrow}</div>
+          <div className="mt-2 font-['Cormorant_Garamond',serif] text-[34px] font-[600] leading-[0.95] tracking-[-0.03em] text-[var(--text)]">{activeTabLabel}</div>
+          <p className="mt-3 text-[12.5px] leading-6 text-[var(--sub)]">{activeTabMeta.description}</p>
+        </div>
+        <nav className="flex flex-1 flex-col gap-2">
           {TABS.map(tb=>{
             const active=tab===tb.id;
             return(
               <button
                 key={tb.id}
                 onClick={()=>setTab(tb.id)}
-                style={{
-                  position:"relative",
-                  display:"flex",
-                  alignItems:"center",
-                  gap:11,
-                  padding:"12px 12px 12px 14px",
-                  borderRadius:14,
-                  border:active?"1px solid rgba(var(--accentRgb),0.18)":"1px solid transparent",
-                  background:active?"rgba(var(--accentRgb),0.08)":"transparent",
-                  color:active?"var(--text)":"var(--sub)",
-                  fontFamily:"'Plus Jakarta Sans',sans-serif",
-                  fontWeight:active?750:600,
-                  fontSize:13.5,
-                  cursor:"pointer",
-                  transition:"all 0.16s ease",
-                  textAlign:"left",
-                  width:"100%",
-                  boxShadow:active?"0 12px 24px rgba(64,45,36,0.08)":"none",
-                }}
-                onMouseEnter={e=>{
-                  if(active) return;
-                  e.currentTarget.style.background="rgba(96,73,63,0.04)";
-                  e.currentTarget.style.borderColor="rgba(96,73,63,0.08)";
-                }}
-                onMouseLeave={e=>{
-                  if(active) return;
-                  e.currentTarget.style.background="transparent";
-                  e.currentTarget.style.borderColor="transparent";
-                }}
+                className={shellNavButtonClass(active)}
               >
-                <span style={{position:"absolute",left:4,top:7,bottom:7,width:3,borderRadius:99,background:"var(--accent)",opacity:active?1:0,transition:"opacity .16s"}}/>
+                <span className={`absolute left-1 top-2 bottom-2 w-[3px] rounded-full bg-[var(--accent)] transition-opacity duration-200 ${active?"opacity-100":"opacity-0"}`}/>
                 <Icon n={tb.ic} size={17} color={active?"var(--accent)":"var(--sub)"}/>
                 {tb.label}
               </button>
             );
           })}
         </nav>
-        <div style={{marginTop:12,borderTop:"1px solid rgba(96,73,63,0.08)",paddingTop:14}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px",borderRadius:16,background:"var(--card)",border:"1px solid rgba(96,73,63,0.1)",boxShadow:"0 12px 24px rgba(64,45,36,0.06)"}}>
-          <div style={{width:36,height:36,borderRadius:"50%",background:"rgba(var(--accentRgb),0.14)",overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div className="mt-4 border-t border-[rgba(96,73,63,0.08)] pt-4">
+          <div className="grid grid-cols-2 gap-2 pb-3">
+            <div className="rounded-2xl border border-[rgba(96,73,63,0.08)] bg-[rgba(255,255,255,0.64)] px-3 py-3">
+              <div className="text-[10px] font-[700] uppercase tracking-[0.14em] text-[var(--sub)]">Ready</div>
+              <div className="mt-1 text-[20px] font-[800] leading-none text-[var(--text)]">{shellReady}</div>
+            </div>
+            <div className="rounded-2xl border border-[rgba(96,73,63,0.08)] bg-[rgba(255,255,255,0.64)] px-3 py-3">
+              <div className="text-[10px] font-[700] uppercase tracking-[0.14em] text-[var(--sub)]">Locations</div>
+              <div className="mt-1 text-[20px] font-[800] leading-none text-[var(--text)]">{shellLocations||0}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-[rgba(96,73,63,0.1)] bg-[rgba(255,255,255,0.72)] p-3 shadow-[0_12px_24px_rgba(64,45,36,0.06)]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[rgba(var(--accentRgb),0.14)]">
             {profile.avatar?<img src={profile.avatar} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<Icon n="user" size={15} color="var(--accent)"/>}
           </div>
-          <div style={{minWidth:0}}>
-            <div style={{fontSize:13,fontWeight:700,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{displayName}</div>
-            <div style={{fontSize:11,color:"var(--sub)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{profile.cellarName||profile.description||"My Cellar"}</div>
+          <div className="min-w-0">
+            <div className="truncate text-[13px] font-[700] text-[var(--text)]">{displayName}</div>
+            <div className="truncate text-[11px] text-[var(--sub)]">{profile.cellarName||profile.description||"My Cellar"}</div>
           </div>
           </div>
         </div>
-      </div>
-      <div data-scroll="main" style={{flex:1,overflowY:"auto",overflowX:"hidden",WebkitOverflowScrolling:"touch"}}>
-        <div style={{maxWidth:1320,margin:"0 auto",padding:"36px 56px 72px"}}>
+      </aside>
+      <div data-scroll="main" className="flex-1 overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]">
+        <div className="mx-auto max-w-[1400px] px-10 pb-20 pt-8 xl:px-14">
+          <div className="mb-6 grid gap-4 rounded-[32px] border border-[rgba(96,73,63,0.1)] bg-[rgba(255,252,248,0.78)] p-6 shadow-[0_22px_48px_rgba(64,45,36,0.08)] backdrop-blur-xl xl:grid-cols-[minmax(0,1.1fr)_auto] xl:items-end">
+            <div>
+              <div className="text-[11px] font-[700] uppercase tracking-[0.18em] text-[var(--sub)]">{activeTabMeta.eyebrow}</div>
+              <div className="mt-2 font-['Cormorant_Garamond',serif] text-[48px] font-[600] leading-[0.92] tracking-[-0.03em] text-[var(--text)]">{profile.cellarName||"Vinology Cellar"}</div>
+              <div className="mt-3 max-w-[720px] text-[14px] leading-7 text-[var(--sub)]">{activeTabMeta.description}</div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[460px]">
+              <div className="rounded-2xl border border-[rgba(96,73,63,0.08)] bg-[rgba(255,255,255,0.7)] px-4 py-4 shadow-[0_12px_24px_rgba(64,45,36,0.05)]">
+                <div className="text-[10px] font-[700] uppercase tracking-[0.14em] text-[var(--sub)]">On-hand value</div>
+                <div className="mt-2 text-[24px] font-[800] leading-none text-[var(--text)]">${shellValue.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+              </div>
+              <div className="rounded-2xl border border-[rgba(96,73,63,0.08)] bg-[rgba(255,255,255,0.7)] px-4 py-4 shadow-[0_12px_24px_rgba(64,45,36,0.05)]">
+                <div className="text-[10px] font-[700] uppercase tracking-[0.14em] text-[var(--sub)]">Ready now</div>
+                <div className="mt-2 text-[24px] font-[800] leading-none text-[var(--text)]">{shellReady}</div>
+              </div>
+              <div className="rounded-2xl border border-[rgba(96,73,63,0.08)] bg-[rgba(255,255,255,0.7)] px-4 py-4 shadow-[0_12px_24px_rgba(64,45,36,0.05)]">
+                <div className="text-[10px] font-[700] uppercase tracking-[0.14em] text-[var(--sub)]">Open audits</div>
+                <div className="mt-2 text-[24px] font-[800] leading-none text-[var(--text)]">{shellOpenAudits}</div>
+              </div>
+            </div>
+          </div>
           {screens}
         </div>
       </div>
@@ -9343,20 +9375,32 @@ export default function App(){
   );
 
   return(
-    <div style={{...cssVars,background:"var(--bg)",height:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif",color:"var(--text)",maxWidth:480,margin:"0 auto",display:"flex",flexDirection:"column",overflow:"hidden",position:"fixed",left:"50%",transform:"translateX(-50%)",width:"100%"}}>
+    <div style={cssVars} className="fixed left-1/2 flex h-screen w-full max-w-[480px] -translate-x-1/2 flex-col overflow-hidden bg-[var(--bg)] font-['Plus_Jakarta_Sans',sans-serif] text-[var(--text)]">
       <style>{CSS}</style>
-      <div data-scroll="main" style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"20px 20px 96px",WebkitOverflowScrolling:"touch"}}>
+      <div className="border-b border-[rgba(96,73,63,0.08)] bg-[rgba(251,247,241,0.82)] px-5 py-4 backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="text-[10px] font-[700] uppercase tracking-[0.16em] text-[var(--sub)]">{activeTabMeta.eyebrow}</div>
+            <div className="mt-1 truncate font-['Cormorant_Garamond',serif] text-[30px] font-[600] leading-none tracking-[-0.03em] text-[var(--text)]">{profile.cellarName||"Vinology"}</div>
+          </div>
+          <div className="rounded-2xl border border-[rgba(var(--accentRgb),0.14)] bg-[rgba(var(--accentRgb),0.08)] px-3 py-2 text-right shadow-[0_12px_20px_rgba(64,45,36,0.06)]">
+            <div className="text-[10px] font-[700] uppercase tracking-[0.14em] text-[var(--sub)]">Ready</div>
+            <div className="mt-1 text-[18px] font-[800] leading-none text-[var(--text)]">{shellReady}</div>
+          </div>
+        </div>
+      </div>
+      <div data-scroll="main" className="flex-1 overflow-x-hidden overflow-y-auto px-5 pb-28 pt-5">
         {screens}
       </div>
-      <div style={{position:"fixed",bottom:8,left:"50%",transform:"translateX(-50%)",width:"calc(100% - 14px)",maxWidth:466,background:"rgba(251,247,241,0.92)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(96,73,63,0.12)",borderRadius:22,padding:"8px 6px calc(10px + env(safe-area-inset-bottom, 0px))",zIndex:100,boxShadow:"0 16px 34px rgba(64,45,36,0.14)"}}>
-        <div style={{display:"flex",justifyContent:"space-around"}}>
+      <div className="fixed bottom-2 left-1/2 z-[100] w-[calc(100%-14px)] max-w-[466px] -translate-x-1/2 rounded-[24px] border border-[rgba(96,73,63,0.12)] bg-[rgba(251,247,241,0.92)] px-2 py-[8px] shadow-[0_16px_34px_rgba(64,45,36,0.14)] backdrop-blur-2xl [padding-bottom:calc(10px+env(safe-area-inset-bottom,0px))]">
+        <div className="flex justify-around">
           {TABS.map(tb=>{
             const active=tab===tb.id;
             return(
-              <button key={tb.id} onClick={()=>setTab(tb.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,background:active?"rgba(var(--accentRgb),0.08)":"transparent",border:active?"1px solid rgba(var(--accentRgb),0.16)":"1px solid transparent",borderRadius:14,padding:"7px 12px 6px",color:active?"var(--text)":"var(--sub)",transition:"all 0.18s",fontFamily:"'Plus Jakarta Sans',sans-serif",cursor:"pointer",boxShadow:active?"0 10px 18px rgba(64,45,36,0.08)":"none"}}>
-                <div style={{transform:active?"scale(1.06)":"scale(1)",transition:"transform 0.18s"}}><Icon n={tb.ic} size={21} color={active?"var(--accent)":"var(--sub)"}/></div>
-                <span style={{fontSize:9.5,fontWeight:active?700:500,letterSpacing:"0.3px"}}>{tb.label}</span>
-                <div style={{width:4,height:4,borderRadius:"50%",background:active?"var(--accent)":"transparent",transition:"background 0.18s"}}/>
+              <button key={tb.id} onClick={()=>setTab(tb.id)} className={shellBottomTabClass(active)}>
+                <div className={`transition-transform duration-200 ${active?"scale-[1.06]":"scale-100"}`}><Icon n={tb.ic} size={21} color={active?"var(--accent)":"var(--sub)"}/></div>
+                <span className={`text-[9.5px] tracking-[0.02em] ${active?"font-[700]":"font-[500]"}`}>{tb.label}</span>
+                <div className={`h-1 w-1 rounded-full transition-colors duration-200 ${active?"bg-[var(--accent)]":"bg-transparent"}`}/>
               </button>
             );
           })}
