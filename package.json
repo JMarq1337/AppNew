@@ -1,0 +1,25 @@
+{
+  "name": "vino-pwa",
+  "version": "3.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "backup:supabase": "node scripts/backup-supabase-rest.mjs",
+    "restore:supabase": "node scripts/restore-supabase-rest.mjs",
+    "repair:consumption": "node scripts/repair-consumption-regression.mjs",
+    "restore:export-consumption": "node scripts/restore-from-export-consumption.mjs",
+    "restore:photos": "node scripts/restore-photos-from-backup.mjs"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.1.0",
+    "vite-plugin-pwa": "^0.19.0"
+  }
+}

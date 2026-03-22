@@ -1,0 +1,64 @@
+name: Supabase Daily Backup (REST)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 18 * * *" # 05:17 Australia/Melbourne (AEST/AEDT varies with DST)
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run REST backup export
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BACKUP_TABLES: wines,profile,audits,tasting_notes,grape_aliases,cellar_events,cellar_snapshots
+        run: |
+          set -euo pipefail
+          node scripts/backup-supabase-rest.mjs
+          LATEST="$(ls -1dt backups/vinology-* | head -n 1)"
+          test -n "$LATEST"
+          echo "BACKUP_DIR=$LATEST" >> "$GITHUB_ENV"
+
+      - name: Verify backup files
+        run: |
+          set -euo pipefail
+          test -f "$BACKUP_DIR/backup.json"
+          test -f "$BACKUP_DIR/backup.json.gz"
+          test -f "$BACKUP_DIR/summary.txt"
+          shasum -a 256 "$BACKUP_DIR/backup.json.gz"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-rest-backup-${{ github.run_number }}
+          path: ${{ env.BACKUP_DIR }}
+          retention-days: 90
+
+      - name: Commit backup snapshot to repository
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$BACKUP_DIR"
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(backup): Supabase snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push
