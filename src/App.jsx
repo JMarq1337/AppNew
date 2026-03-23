@@ -3,7 +3,7 @@ import { authApi, dbApi } from "./apiClient";
 import { wineHoldings2021 } from "./data/wineHoldings2021";
 import * as ExcelJSImport from "exceljs";
 
-const APP_VERSION = "8.41";
+const APP_VERSION = "8.42";
 const ADMIN_PIN_DIGITS = 8;
 const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
 const CHANGE_LOG_KEY = "vino_change_log_v1";
@@ -7528,8 +7528,6 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
   const [exportError,setExportError]=useState("");
   const [kpiListOpen,setKpiListOpen]=useState(null);
   const [compact,setCompact]=useState(()=>window.innerWidth<920);
-  const [activityRange,setActivityRange]=useState("7d");
-  const [activityType,setActivityType]=useState("all");
   const [settingsToast,setSettingsToast]=useState("");
   useEffect(()=>{
     const onResize=()=>setCompact(window.innerWidth<920);
@@ -7546,7 +7544,6 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
   const bottlesLeft=col.reduce((s,w)=>s+Math.max(0,Math.round(safeNum(w.bottles)||0)),0);
   const purchasedBottles=col.reduce((s,w)=>s+getTotalPurchased(w),0);
   const consumedBottles=col.reduce((s,w)=>s+getConsumedBottles(w),0);
-  const topWine=[...col].sort((a,b)=>(b.rating||0)-(a.rating||0))[0];
   const types=col.reduce((acc,w)=>{const t=resolveWineType(w);acc[t]=(acc[t]||0)+1;return acc;},{});
   const readinessCounts=col.reduce((acc,w)=>{
     const k=wineReadiness(w).key;
@@ -7583,14 +7580,13 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
     acc[key]=(acc[key]||0)+1;
     return acc;
   },{});
-  const topVarietals=Object.entries(varietalStats).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const topOrigins=Object.entries(regionStats).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  const topVarietals=Object.entries(varietalStats).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const topOrigins=Object.entries(regionStats).sort((a,b)=>b[1]-a[1]).slice(0,3);
   const displayName=[profile.name,profile.surname].filter(Boolean).join(" ")||"Winemaker";
+  const identityCopy=(profile.bio||profile.description||"").toString().trim();
   const summaryFacts=[
     profile.country||"",
-    topRegion!=="—"?topRegion:"",
     `${cellarLocationCount||0} ${cellarLocationCount===1?"location":"locations"}`,
-    `${col.length} ${col.length===1?"wine":"wines"}`,
     `${bottlesLeft} bottles on hand`,
   ].filter(Boolean);
   const readyWines=[...col]
@@ -7696,19 +7692,7 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
       return true;
     })
     .sort((a,b)=>b.ts-a.ts);
-  const withinRange=(ts,range)=>{
-    if(range==="all") return true;
-    const diffDays=Math.max(0,Math.floor((Date.now()-ts)/86400000));
-    if(range==="1d") return diffDays<=1;
-    if(range==="7d") return diffDays<=7;
-    if(range==="30d") return diffDays<=30;
-    return true;
-  };
-  const inferActivityType=item=>item?.type||(/Journal/i.test(item?.title||"")?"journal":/Audit/i.test(item?.title||"")?"audit":/settings/i.test(item?.title||"")?"settings":"inventory");
-  const recentActivity=rangedActivity
-    .filter(item=>withinRange(item.ts,activityRange))
-    .filter(item=>activityType==="all"||inferActivityType(item)===activityType)
-    .slice(0,activityRange==="all"?14:8);
+  const recentActivity=rangedActivity.slice(0,4);
   const healthTotal=Math.max(1,readyCount+notReadyCount+pastPeakCount+noWindowCount);
   const readyPct=(readyCount/healthTotal)*100;
   const earlyPct=(notReadyCount/healthTotal)*100;
@@ -7728,12 +7712,6 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
   ];
   const ringBg=`conic-gradient(${ringStops.map((s,idx)=>`${s.c} ${idx===0?0:ringStops[idx-1].to}% ${s.to}%`).join(",")})`;
 
-  const panel={
-    background:"var(--card)",
-    border:"1px solid var(--border)",
-    borderRadius:24,
-    boxShadow:"0 14px 30px rgba(29,24,20,0.05)",
-  };
   const plainSection={
     padding:"10px 0 0",
     borderTop:"1px solid rgba(96,73,63,0.12)",
@@ -7744,18 +7722,6 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
     fontWeight:700,
     fontFamily:"'Plus Jakarta Sans',sans-serif",
   };
-  const controlButtonStyle=active=>({
-    padding:"8px 12px",
-    borderRadius:12,
-    border:active?"1px solid rgba(var(--accentRgb),0.22)":"1px solid var(--border)",
-    background:active?"var(--card)":"var(--surface)",
-    color:active?"var(--accent)":"var(--sub)",
-    fontSize:11.5,
-    fontWeight:700,
-    fontFamily:"'Plus Jakarta Sans',sans-serif",
-    cursor:"pointer",
-    boxShadow:active?"0 10px 20px rgba(var(--accentRgb),0.08)":"none",
-  });
   const headerActionButton={
     height:42,
     borderRadius:14,
@@ -7772,12 +7738,6 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
     gap:8,
     boxShadow:"0 10px 22px rgba(29,24,20,0.04)",
   };
-  const profileCard={
-    ...panel,
-    padding:compact?"20px":"22px 22px 20px",
-    position:"relative",
-    overflow:"hidden",
-  };
   const topMetricCard={
     background:"var(--card)",
     border:"1px solid var(--border)",
@@ -7785,34 +7745,21 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
     padding:"16px 16px 14px",
     boxShadow:"0 10px 22px rgba(29,24,20,0.04)",
   };
-  const supportingMetricCard={
-    background:"var(--card)",
-    border:"1px solid var(--border)",
-    borderRadius:18,
-    padding:"14px 14px 13px",
-    boxShadow:"0 8px 18px rgba(29,24,20,0.035)",
-  };
   const feedItemCard={
     padding:"12px 0",
     borderBottom:"1px solid rgba(96,73,63,0.08)",
   };
   const primaryTopMetrics=[
-    {label:"Total RRP",value:`$${rrpValue.toLocaleString(undefined,{maximumFractionDigits:2})}`,meta:"Purchased stock"},
-    {label:"On-Hand Value",value:`$${unconsumedRrpValue.toLocaleString(undefined,{maximumFractionDigits:2})}`,meta:"Current cellar"},
-    {label:"Purchased Bottles",value:purchasedBottles,meta:"Lifetime total"},
-    {label:"Consumed Bottles",value:consumedBottles,meta:"Recorded drinks"},
-  ];
-  const operationalTopMetrics=[
-    {label:"On-Hand Bottles",value:bottlesLeft,meta:"Available to drink"},
-    {label:"Ready to Drink",value:readyCount,meta:`${Math.round((readyCount/Math.max(1,col.length))*100)}% of cellar`},
-    {label:"Past Peak Risk",value:pastPeakSoonCount,meta:"Next 12 months"},
-    {label:"Locations",value:cellarLocationCount||0,meta:topRegion!=="—"?`Top origin ${topRegion}`:"Storage mapped"},
+    {label:"Total RRP",value:`$${rrpValue.toLocaleString(undefined,{maximumFractionDigits:2})}`},
+    {label:"On-Hand Value",value:`$${unconsumedRrpValue.toLocaleString(undefined,{maximumFractionDigits:2})}`},
+    {label:"Purchased Bottles",value:purchasedBottles},
+    {label:"Consumed Bottles",value:consumedBottles},
   ];
   const secondaryMetricCards=[
-    {label:"Ready to Drink",value:`${readyCount}`,meta:`${Math.round((readyCount/Math.max(1,col.length))*100)}% of cellar`,onClick:()=>setKpiListOpen({title:"Ready to Drink",rows:readyWines,subtitle:"Wines currently in drinking window."})},
-    {label:"Past Peak Risk (12m)",value:`${pastPeakSoonCount}`,meta:"Ends this/next year",onClick:()=>setKpiListOpen({title:"Past Peak Risk (12 Months)",rows:pastPeakSoonWines,subtitle:"Wines whose drink window ends this year or next year."})},
-    {label:"Low Stock Wines",value:`${lowStockCount}`,meta:"1-2 bottles left",onClick:()=>setKpiListOpen({title:"Low Stock Wines",rows:lowStockWines,subtitle:"Wines with one or two bottles left."})},
-    {label:"Average Bottle RRP",value:`$${avgBottle.toLocaleString(undefined,{maximumFractionDigits:0})}`,meta:"Across purchased stock"},
+    {label:"Ready to Drink",value:`${readyCount}`,onClick:()=>setKpiListOpen({title:"Ready to Drink",rows:readyWines,subtitle:"Wines currently in drinking window."})},
+    {label:"Past Peak Risk",value:`${pastPeakSoonCount}`,onClick:()=>setKpiListOpen({title:"Past Peak Risk (12 Months)",rows:pastPeakSoonWines,subtitle:"Wines whose drink window ends this year or next year."})},
+    {label:"Low Stock",value:`${lowStockCount}`,onClick:()=>setKpiListOpen({title:"Low Stock Wines",rows:lowStockWines,subtitle:"Wines with one or two bottles left."})},
+    {label:"Average Bottle RRP",value:`$${avgBottle.toLocaleString(undefined,{maximumFractionDigits:0})}`},
   ];
   const readinessRows=[
     {label:"Ready now",count:readyCount,color:readinessPalette.ready},
@@ -7832,7 +7779,6 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
     {label:"Sommelier",icon:"chat",onClick:()=>onNavigateTab?.("ai")},
     {label:"Add Wine",icon:"plus",onClick:()=>onNavigateTab?.("collection")},
   ];
-  const simplifiedRecentActivity=recentActivity.slice(0,6);
 
   if(view==="settings")return <SettingsPanel onBack={()=>setView("main")} onSaved={msg=>{setSettingsToast(msg||"Settings saved");setView("main");}} profile={profile} setProfile={setProfile} theme={theme} setTheme={setTheme} authRole={authRole} onSavePin={onSavePin}/>;
   if(view==="explore")return <ExploreWineries onBack={()=>setView("main")}/>;
@@ -7851,7 +7797,7 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
         <div>
           <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:700,color:"var(--sub)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Summary</div>
           <div style={{fontFamily:DISPLAY_FONT,fontSize:compact?38:42,fontWeight:600,color:"var(--text)",lineHeight:0.92,letterSpacing:"-0.02em"}}>{profile.cellarName||"My Cellar"}</div>
-          <div style={{fontSize:13,color:"var(--sub)",marginTop:6,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Value, readiness, composition, activity, and operational shortcuts in one collector-grade view.</div>
+          <div style={{fontSize:13,color:"var(--sub)",marginTop:6,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>A concise overview of cellar value, readiness, and recent movement.</div>
         </div>
         <button onClick={()=>setView("settings")} style={headerActionButton}
           onMouseEnter={e=>{e.currentTarget.style.background="rgba(var(--accentRgb),0.08)";e.currentTarget.style.color="var(--accent)";}}
@@ -7861,9 +7807,8 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
         </button>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"minmax(320px,0.84fr) minmax(0,1.16fr)",gap:10,marginBottom:10,alignItems:"stretch"}}>
-        <div style={profileCard}>
-          <div style={{position:"absolute",left:22,right:22,top:0,height:3,borderRadius:999,background:"rgba(var(--accentRgb),0.9)",opacity:0.9,pointerEvents:"none"}}/>
+      <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"minmax(320px,0.84fr) minmax(0,1.16fr)",gap:14,marginBottom:14,alignItems:"stretch"}}>
+        <section style={{padding:"6px 0 14px",borderBottom:"1px solid rgba(96,73,63,0.12)"}}>
           <div style={{display:"flex",alignItems:"flex-start",gap:14,minWidth:0}}>
             <div style={{width:64,height:64,borderRadius:"50%",background:"var(--surface)",overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",border:"1px solid var(--border)",boxShadow:"0 8px 18px rgba(29,24,20,0.035)"}}>
               {profile.avatar?<img src={profile.avatar} alt="avatar" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<Icon n="user" size={28} color="var(--accent)"/>}
@@ -7871,53 +7816,37 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
             <div style={{minWidth:0}}>
               <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:700,color:"var(--sub)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>Collector Profile</div>
               <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:21,fontWeight:800,color:"var(--text)",lineHeight:1.1}}>{displayName}</div>
-              {profile.bio&&<div style={{fontSize:12.5,color:"var(--sub)",marginTop:6,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6,maxWidth:520}}>{profile.bio}</div>}
-              {!profile.bio&&profile.description&&<div style={{fontSize:12.5,color:"var(--sub)",marginTop:6,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6}}>{profile.description}</div>}
+              {identityCopy&&<div style={{fontSize:12.5,color:"var(--sub)",marginTop:6,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6,maxWidth:520}}>{identityCopy}</div>}
             </div>
           </div>
           {!!summaryFacts.length&&(
-            <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid rgba(96,73,63,0.08)",fontSize:12.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.65}}>
+            <div style={{marginTop:14,fontSize:12.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.65}}>
               {summaryFacts.join(" · ")}
             </div>
           )}
-        </div>
+        </section>
         <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:10}}>
           {primaryTopMetrics.map(item=>(
             <div key={item.label} style={topMetricCard}>
               <div style={{fontSize:11.5,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{item.label}</div>
               <div style={{fontSize:compact?22:24,fontWeight:900,color:"var(--text)",lineHeight:1.06,fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:8}}>{item.value}</div>
-              <div style={{fontSize:11,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:4}}>{item.meta}</div>
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:compact?"repeat(2,minmax(0,1fr))":"repeat(4,minmax(0,1fr))",gap:10,marginBottom:12}}>
-        {operationalTopMetrics.map(item=>(
-          <div key={item.label} style={supportingMetricCard}>
-            <div style={{fontSize:10.5,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{item.label}</div>
-            <div style={{fontSize:19,fontWeight:900,color:"var(--text)",lineHeight:1.08,fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:6}}>{item.value}</div>
-            <div style={{fontSize:10.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:4}}>{item.meta}</div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:10,marginBottom:12}}>
+      <div style={{display:"grid",gridTemplateColumns:compact?"repeat(2,minmax(0,1fr))":"repeat(4,minmax(0,1fr))",gap:18,marginBottom:14,padding:"10px 0 12px",borderTop:"1px solid rgba(96,73,63,0.12)",borderBottom:"1px solid rgba(96,73,63,0.12)"}}>
         {secondaryMetricCards.map(card=>(
           <button
             key={card.label}
             onClick={card.onClick}
-            style={{...panel,padding:"14px 15px",textAlign:"left",cursor:card.onClick?"pointer":"default",transition:"transform .15s, box-shadow .15s",width:"100%",border:card.onClick?"1px solid rgba(var(--accentRgb),0.18)":"1px solid var(--border)"}}
-            onMouseEnter={e=>{if(card.onClick){e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 10px 24px var(--shadow)";}}
-            }
-            onMouseLeave={e=>{if(card.onClick){e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="0 8px 24px var(--shadow)";}}
-            }
+            style={{padding:0,textAlign:"left",cursor:card.onClick?"pointer":"default",transition:"color .15s",width:"100%",border:"none",background:"transparent"}}
+            onMouseEnter={e=>{if(card.onClick){e.currentTarget.style.color="var(--accent)";}}}
+            onMouseLeave={e=>{if(card.onClick){e.currentTarget.style.color="var(--text)";}}}
           >
             <div style={tinyLabel}>{card.label}</div>
-            <div style={{fontSize:27,fontWeight:900,color:"var(--text)",lineHeight:1.05,marginTop:4,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{card.value}</div>
-            <div style={{fontSize:11,color:"var(--sub)",marginTop:3,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-              {card.meta}{card.onClick?" · View list":""}
-            </div>
+            <div style={{fontSize:27,fontWeight:900,color:"inherit",lineHeight:1.05,marginTop:4,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{card.value}</div>
+            {card.onClick&&<div style={{fontSize:11,color:"var(--accent)",marginTop:4,fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700}}>Open list</div>}
           </button>
         ))}
       </div>
@@ -7927,7 +7856,6 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
           <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,marginBottom:12,flexWrap:"wrap"}}>
             <div>
               <div style={tinyLabel}>Cellar Readiness</div>
-              <div style={{fontSize:12.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:4,lineHeight:1.55}}>Drink-window position across the current cellar.</div>
             </div>
             <div style={{fontSize:12.5,color:"var(--text)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
               {readyCount} ready now
@@ -7960,7 +7888,6 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
           <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,marginBottom:10,flexWrap:"wrap"}}>
             <div>
               <div style={tinyLabel}>Cellar Intelligence</div>
-              <div style={{fontSize:12.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:4,lineHeight:1.55}}>Financial and composition signals across the cellar.</div>
             </div>
             <div style={{fontSize:12.5,color:"var(--text)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
               {topVarietals[0]?.[0]||"—"} leads
@@ -7981,7 +7908,6 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
         <section style={{...plainSection,marginBottom:12}}>
           <div style={{marginBottom:10}}>
             <div style={tinyLabel}>Collection Breakdown</div>
-            <div style={{fontSize:12.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:4,lineHeight:1.55}}>Varietal weight, bottle mix, and origin concentration across the cellar.</div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"1.1fr 0.9fr",gap:12,alignItems:"start"}}>
             <WineBottleViz types={types} total={col.length}/>
@@ -8011,11 +7937,6 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
                   </div>
                 );
               }):<div style={{fontSize:12,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>No origin data yet.</div>}
-              <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid rgba(96,73,63,0.08)"}}>
-                <div style={{fontSize:10.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Most Common Origin</div>
-                <div style={{fontSize:14,color:"var(--text)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:4}}>{topRegion}</div>
-                {topWine&&<div style={{fontSize:11,color:"var(--sub)",marginTop:4,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Top rated: {topWine.name}</div>}
-              </div>
             </div>
           </div>
         </section>
@@ -8029,9 +7950,9 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
               Latest updates
             </div>
           </div>
-          {simplifiedRecentActivity.length?(
-            simplifiedRecentActivity.map((ev,idx)=>(
-              <div key={`${ev.title}-${ev.detail}-${ev.ts}-${idx}`} style={{...feedItemCard,borderBottom:idx<simplifiedRecentActivity.length-1?"1px solid rgba(96,73,63,0.08)":"none"}}>
+          {recentActivity.length?(
+            recentActivity.map((ev,idx)=>(
+              <div key={`${ev.title}-${ev.detail}-${ev.ts}-${idx}`} style={{...feedItemCard,borderBottom:idx<recentActivity.length-1?"1px solid rgba(96,73,63,0.08)":"none"}}>
                 <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
                 <span style={{width:9,height:9,borderRadius:"50%",background:"var(--accent)",marginTop:5,flexShrink:0,boxShadow:"0 0 0 4px rgba(var(--accentRgb),0.08)"}}/>
                 <div style={{minWidth:0}}>
