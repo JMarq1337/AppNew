@@ -3,7 +3,7 @@ import { authApi, dbApi } from "./apiClient";
 import { wineHoldings2021 } from "./data/wineHoldings2021";
 import * as ExcelJSImport from "exceljs";
 
-const APP_VERSION = "8.40";
+const APP_VERSION = "8.41";
 const ADMIN_PIN_DIGITS = 8;
 const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
 const CHANGE_LOG_KEY = "vino_change_log_v1";
@@ -7734,6 +7734,10 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
     borderRadius:24,
     boxShadow:"0 14px 30px rgba(29,24,20,0.05)",
   };
+  const plainSection={
+    padding:"10px 0 0",
+    borderTop:"1px solid rgba(96,73,63,0.12)",
+  };
   const tinyLabel={
     fontSize:11.5,
     color:"var(--sub)",
@@ -7828,6 +7832,7 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
     {label:"Sommelier",icon:"chat",onClick:()=>onNavigateTab?.("ai")},
     {label:"Add Wine",icon:"plus",onClick:()=>onNavigateTab?.("collection")},
   ];
+  const simplifiedRecentActivity=recentActivity.slice(0,6);
 
   if(view==="settings")return <SettingsPanel onBack={()=>setView("main")} onSaved={msg=>{setSettingsToast(msg||"Settings saved");setView("main");}} profile={profile} setProfile={setProfile} theme={theme} setTheme={setTheme} authRole={authRole} onSavePin={onSavePin}/>;
   if(view==="explore")return <ExploreWineries onBack={()=>setView("main")}/>;
@@ -7917,8 +7922,8 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
         ))}
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"1.05fr 1fr",gap:10,marginBottom:12}}>
-        <div style={{...panel,padding:"18px 18px"}}>
+      <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"1.05fr 1fr",gap:18,marginBottom:12}}>
+        <section style={plainSection}>
           <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,marginBottom:12,flexWrap:"wrap"}}>
             <div>
               <div style={tinyLabel}>Cellar Readiness</div>
@@ -7949,9 +7954,9 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
               ))}
             </div>
           </div>
-        </div>
+        </section>
 
-        <div style={{...panel,padding:"18px 18px"}}>
+        <section style={plainSection}>
           <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,marginBottom:10,flexWrap:"wrap"}}>
             <div>
               <div style={tinyLabel}>Cellar Intelligence</div>
@@ -7969,11 +7974,11 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
               </div>
             ))}
           </div>
-        </div>
+        </section>
       </div>
 
       {Object.keys(types).length>0&&(
-        <div style={{...panel,padding:"18px 18px",marginBottom:12}}>
+        <section style={{...plainSection,marginBottom:12}}>
           <div style={{marginBottom:10}}>
             <div style={tinyLabel}>Collection Breakdown</div>
             <div style={{fontSize:12.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:4,lineHeight:1.55}}>Varietal weight, bottle mix, and origin concentration across the cellar.</div>
@@ -8013,44 +8018,20 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
               </div>
             </div>
           </div>
-        </div>
+        </section>
       )}
 
-      <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"1.08fr 0.92fr",gap:10,marginBottom:14}}>
-        <div style={{...panel,padding:"18px 18px"}}>
+      <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"1.08fr 0.92fr",gap:18,marginBottom:14}}>
+        <section style={plainSection}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:8,flexWrap:"wrap"}}>
             <div style={tinyLabel}>Recent Activity</div>
             <div style={{fontSize:11,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700}}>
-              {activityRange==="all"?"Full history":"Window"} · {activityType==="all"?"All activity":activityType}
+              Latest updates
             </div>
           </div>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
-            {[
-              {value:"all",label:"All"},
-              {value:"inventory",label:"Inventory"},
-              {value:"journal",label:"Journal"},
-              {value:"audit",label:"Audit"},
-            ].map(item=>(
-              <button key={item.value} onClick={()=>setActivityType(item.value)} style={controlButtonStyle(activityType===item.value)}>
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-            {[
-              {value:"1d",label:"24h"},
-              {value:"7d",label:"7d"},
-              {value:"30d",label:"30d"},
-              {value:"all",label:"All time"},
-            ].map(item=>(
-              <button key={item.value} onClick={()=>setActivityRange(item.value)} style={controlButtonStyle(activityRange===item.value)}>
-                {item.label}
-              </button>
-            ))}
-          </div>
-          {recentActivity.length?(
-            recentActivity.map((ev,idx)=>(
-              <div key={`${ev.title}-${ev.detail}-${ev.ts}-${idx}`} style={{...feedItemCard,borderBottom:idx<recentActivity.length-1?"1px solid rgba(96,73,63,0.08)":"none"}}>
+          {simplifiedRecentActivity.length?(
+            simplifiedRecentActivity.map((ev,idx)=>(
+              <div key={`${ev.title}-${ev.detail}-${ev.ts}-${idx}`} style={{...feedItemCard,borderBottom:idx<simplifiedRecentActivity.length-1?"1px solid rgba(96,73,63,0.08)":"none"}}>
                 <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
                 <span style={{width:9,height:9,borderRadius:"50%",background:"var(--accent)",marginTop:5,flexShrink:0,boxShadow:"0 0 0 4px rgba(var(--accentRgb),0.08)"}}/>
                 <div style={{minWidth:0}}>
@@ -8066,9 +8047,9 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
           ):(
             <div style={{fontSize:12,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>No activity in this window yet.</div>
           )}
-        </div>
+        </section>
 
-        <div style={{...panel,padding:"18px 18px"}}>
+        <section style={plainSection}>
           <div style={{...tinyLabel,marginBottom:8}}>Quick Actions</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",columnGap:18,rowGap:0}}>
             {quickActions.map((action,idx)=>(
@@ -8078,11 +8059,7 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
               </button>
             ))}
           </div>
-          <button onClick={()=>setView("explore")} style={{marginTop:10,width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 0 0",border:"none",borderTop:"1px solid rgba(96,73,63,0.08)",background:"transparent",color:"var(--accent)",fontSize:12.5,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",cursor:"pointer"}}>
-            <span style={{display:"inline-flex",alignItems:"center",gap:7}}><Icon n="mappin" size={14} color="var(--accent)"/>Explore Wineries</span>
-            <Icon n="chevR" size={13} color="var(--accent)"/>
-          </button>
-        </div>
+        </section>
       </div>
 
       <div style={{textAlign:"center",fontSize:12,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",opacity:0.7,marginBottom:8}}>Vinology v{APP_VERSION} · {displayName}</div>
