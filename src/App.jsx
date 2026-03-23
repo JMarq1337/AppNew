@@ -3,7 +3,7 @@ import { authApi, dbApi } from "./apiClient";
 import { wineHoldings2021 } from "./data/wineHoldings2021";
 import * as ExcelJSImport from "exceljs";
 
-const APP_VERSION = "8.38";
+const APP_VERSION = "8.39";
 const ADMIN_PIN_DIGITS = 8;
 const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
 const CHANGE_LOG_KEY = "vino_change_log_v1";
@@ -7765,6 +7765,108 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
     borderRadius:16,
     padding:"11px 12px",
   };
+  const headerActionButton={
+    height:42,
+    borderRadius:14,
+    background:"var(--card)",
+    border:"1px solid var(--border)",
+    display:"flex",
+    alignItems:"center",
+    justifyContent:"center",
+    color:"var(--sub)",
+    cursor:"pointer",
+    transition:"all 0.15s",
+    flexShrink:0,
+    padding:"0 14px",
+    gap:8,
+    boxShadow:"0 10px 22px rgba(29,24,20,0.04)",
+  };
+  const profileCard={
+    ...panel,
+    padding:compact?"20px":"22px 22px 20px",
+    position:"relative",
+    overflow:"hidden",
+  };
+  const topMetricCard={
+    background:"var(--card)",
+    border:"1px solid var(--border)",
+    borderRadius:20,
+    padding:"16px 16px 14px",
+    boxShadow:"0 10px 22px rgba(29,24,20,0.04)",
+  };
+  const supportingMetricCard={
+    background:"var(--card)",
+    border:"1px solid var(--border)",
+    borderRadius:18,
+    padding:"14px 14px 13px",
+    boxShadow:"0 8px 18px rgba(29,24,20,0.035)",
+  };
+  const sectionBadge={
+    padding:"8px 10px",
+    borderRadius:14,
+    background:"var(--surface)",
+    border:"1px solid var(--border)",
+    fontSize:11.5,
+    color:"var(--text)",
+    fontWeight:800,
+    fontFamily:"'Plus Jakarta Sans',sans-serif",
+  };
+  const feedItemCard={
+    padding:"12px 0",
+    borderBottom:"1px solid rgba(96,73,63,0.08)",
+  };
+  const quickActionCard={
+    display:"flex",
+    alignItems:"center",
+    justifyContent:"space-between",
+    gap:8,
+    padding:"13px 13px",
+    borderRadius:16,
+    border:"1px solid var(--border)",
+    background:"var(--card)",
+    color:"var(--text)",
+    fontSize:12.5,
+    fontWeight:700,
+    fontFamily:"'Plus Jakarta Sans',sans-serif",
+    cursor:"pointer",
+    boxShadow:"0 8px 18px rgba(29,24,20,0.035)",
+  };
+  const primaryTopMetrics=[
+    {label:"Total RRP",value:`$${rrpValue.toLocaleString(undefined,{maximumFractionDigits:2})}`,meta:"Purchased stock"},
+    {label:"On-Hand Value",value:`$${unconsumedRrpValue.toLocaleString(undefined,{maximumFractionDigits:2})}`,meta:"Current cellar"},
+    {label:"Purchased Bottles",value:purchasedBottles,meta:"Lifetime total"},
+    {label:"Consumed Bottles",value:consumedBottles,meta:"Recorded drinks"},
+  ];
+  const operationalTopMetrics=[
+    {label:"On-Hand Bottles",value:bottlesLeft,meta:"Available to drink"},
+    {label:"Ready to Drink",value:readyCount,meta:`${Math.round((readyCount/Math.max(1,col.length))*100)}% of cellar`},
+    {label:"Past Peak Risk",value:pastPeakSoonCount,meta:"Next 12 months"},
+    {label:"Locations",value:cellarLocationCount||0,meta:topRegion!=="—"?`Top origin ${topRegion}`:"Storage mapped"},
+  ];
+  const secondaryMetricCards=[
+    {label:"Ready to Drink",value:`${readyCount}`,meta:`${Math.round((readyCount/Math.max(1,col.length))*100)}% of cellar`,onClick:()=>setKpiListOpen({title:"Ready to Drink",rows:readyWines,subtitle:"Wines currently in drinking window."})},
+    {label:"Past Peak Risk (12m)",value:`${pastPeakSoonCount}`,meta:"Ends this/next year",onClick:()=>setKpiListOpen({title:"Past Peak Risk (12 Months)",rows:pastPeakSoonWines,subtitle:"Wines whose drink window ends this year or next year."})},
+    {label:"Low Stock Wines",value:`${lowStockCount}`,meta:"1-2 bottles left",onClick:()=>setKpiListOpen({title:"Low Stock Wines",rows:lowStockWines,subtitle:"Wines with one or two bottles left."})},
+    {label:"Average Bottle RRP",value:`$${avgBottle.toLocaleString(undefined,{maximumFractionDigits:0})}`,meta:"Across purchased stock"},
+  ];
+  const readinessRows=[
+    {label:"Ready now",count:readyCount,color:readinessPalette.ready},
+    {label:"Not ready",count:notReadyCount,color:readinessPalette.early},
+    {label:"Past peak",count:pastPeakCount,color:readinessPalette.late},
+    {label:"No window",count:noWindowCount,color:readinessPalette.none},
+  ];
+  const intelligenceRows=[
+    {label:"Average Bottle RRP",value:`$${avgBottle.toLocaleString(undefined,{maximumFractionDigits:2})}`},
+    {label:"Stock Still On Hand",value:`${purchasedBottles?Math.round((bottlesLeft/purchasedBottles)*100):0}%`},
+    {label:"Most Common Origin",value:topRegion},
+    {label:"Top Varietal",value:topVarietals[0]?.[0]||"—"},
+  ];
+  const quickActions=[
+    {label:"Export",icon:"export",onClick:()=>setExportOpen(true)},
+    {label:"Start Audit",icon:"audit",onClick:()=>onNavigateTab?.("audit")},
+    {label:"Sommelier",icon:"chat",onClick:()=>onNavigateTab?.("ai")},
+    {label:"Add Wine",icon:"plus",onClick:()=>onNavigateTab?.("collection")},
+  ];
 
   if(view==="settings")return <SettingsPanel onBack={()=>setView("main")} onSaved={msg=>{setSettingsToast(msg||"Settings saved");setView("main");}} profile={profile} setProfile={setProfile} theme={theme} setTheme={setTheme} authRole={authRole} onSavePin={onSavePin}/>;
   if(view==="explore")return <ExploreWineries onBack={()=>setView("main")}/>;
@@ -7785,66 +7887,57 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
           <div style={{fontFamily:DISPLAY_FONT,fontSize:compact?38:42,fontWeight:600,color:"var(--text)",lineHeight:0.92,letterSpacing:"-0.02em"}}>{profile.cellarName||"My Cellar"}</div>
           <div style={{fontSize:13,color:"var(--sub)",marginTop:6,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Value, readiness, composition, activity, and operational shortcuts in one collector-grade view.</div>
         </div>
-        <button onClick={()=>setView("settings")} style={{height:42,borderRadius:14,background:"rgba(255,255,255,0.72)",border:"1px solid rgba(96,73,63,0.1)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--sub)",cursor:"pointer",transition:"all 0.15s",flexShrink:0,padding:"0 14px",gap:8,boxShadow:"0 12px 24px rgba(64,45,36,0.06)"}}
+        <button onClick={()=>setView("settings")} style={headerActionButton}
           onMouseEnter={e=>{e.currentTarget.style.background="rgba(var(--accentRgb),0.08)";e.currentTarget.style.color="var(--accent)";}}
-          onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,0.72)";e.currentTarget.style.color="var(--sub)";}}>
+          onMouseLeave={e=>{e.currentTarget.style.background="var(--card)";e.currentTarget.style.color="var(--sub)";}}>
           <Icon n="settings" size={18}/>
           {!compact&&<span style={{fontSize:12.5,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Settings</span>}
         </button>
       </div>
 
-      <div style={{...panel,color:"var(--text)",padding:compact?"18px":"20px 22px",marginBottom:14,position:"relative",overflow:"hidden",borderRadius:28}}>
-        <div style={{position:"absolute",left:22,right:22,top:0,height:3,borderRadius:999,background:"rgba(var(--accentRgb),0.9)",opacity:0.85,pointerEvents:"none"}}/>
-        <div style={{position:"relative",zIndex:1,display:"grid",gridTemplateColumns:compact?"1fr":"minmax(0,1.06fr) minmax(360px,0.94fr)",gap:14,alignItems:"stretch"}}>
-          <div style={{display:"flex",alignItems:"flex-start",gap:12,minWidth:0}}>
-            <div style={{width:64,height:64,borderRadius:"50%",background:"var(--surface)",overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",border:"1px solid var(--border)"}}>
+      <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"minmax(320px,0.84fr) minmax(0,1.16fr)",gap:10,marginBottom:10,alignItems:"stretch"}}>
+        <div style={profileCard}>
+          <div style={{position:"absolute",left:22,right:22,top:0,height:3,borderRadius:999,background:"rgba(var(--accentRgb),0.9)",opacity:0.9,pointerEvents:"none"}}/>
+          <div style={{display:"flex",alignItems:"flex-start",gap:14,minWidth:0}}>
+            <div style={{width:64,height:64,borderRadius:"50%",background:"var(--surface)",overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",border:"1px solid var(--border)",boxShadow:"0 8px 18px rgba(29,24,20,0.035)"}}>
               {profile.avatar?<img src={profile.avatar} alt="avatar" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<Icon n="user" size={28} color="var(--accent)"/>}
             </div>
             <div style={{minWidth:0}}>
-              <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:20,fontWeight:800,color:"var(--text)",lineHeight:1.1}}>{displayName}</div>
-              {profile.bio&&<div style={{fontSize:12.5,color:"var(--sub)",marginTop:5,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6,maxWidth:520}}>{profile.bio}</div>}
-              {!profile.bio&&profile.description&&<div style={{fontSize:12.5,color:"var(--sub)",marginTop:5,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6}}>{profile.description}</div>}
-              {!!summaryFacts.length&&<div style={{fontSize:12.5,color:"var(--sub)",marginTop:10,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6}}>{summaryFacts.join(" · ")}</div>}
+              <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:700,color:"var(--sub)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>Collector Profile</div>
+              <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:21,fontWeight:800,color:"var(--text)",lineHeight:1.1}}>{displayName}</div>
+              {profile.bio&&<div style={{fontSize:12.5,color:"var(--sub)",marginTop:6,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6,maxWidth:520}}>{profile.bio}</div>}
+              {!profile.bio&&profile.description&&<div style={{fontSize:12.5,color:"var(--sub)",marginTop:6,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6}}>{profile.description}</div>}
             </div>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:8}}>
-            {[
-              {label:"Total RRP",value:`$${rrpValue.toLocaleString(undefined,{maximumFractionDigits:2})}`,meta:"Purchased stock"},
-              {label:"On-Hand Value",value:`$${unconsumedRrpValue.toLocaleString(undefined,{maximumFractionDigits:2})}`,meta:"Current cellar"},
-              {label:"Purchased Bottles",value:purchasedBottles,meta:"Lifetime total"},
-              {label:"Consumed Bottles",value:consumedBottles,meta:"Recorded drinks"},
-            ].map(item=>(
-              <div key={item.label} style={summaryTile}>
-                <div style={{fontSize:11.5,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{item.label}</div>
-                <div style={{fontSize:compact?20:23,fontWeight:900,color:"var(--text)",lineHeight:1.08,fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:6}}>{item.value}</div>
-                <div style={{fontSize:11,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:4}}>{item.meta}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{gridColumn:"1 / -1",display:"grid",gridTemplateColumns:compact?"repeat(2,minmax(0,1fr))":"repeat(4,minmax(0,1fr))",gap:8,paddingTop:12,borderTop:"1px solid rgba(96,73,63,0.08)"}}>
-            {[
-              {label:"On-Hand Bottles",value:bottlesLeft,meta:"Available to drink"},
-              {label:"Ready to Drink",value:readyCount,meta:`${Math.round((readyCount/Math.max(1,col.length))*100)}% of cellar`},
-              {label:"Past Peak Risk",value:pastPeakSoonCount,meta:"Next 12 months"},
-              {label:"Locations",value:cellarLocationCount||0,meta:topRegion!=="—"?`Top origin ${topRegion}`:"Storage mapped"},
-            ].map(item=>(
-              <div key={item.label} style={{padding:"11px 12px",borderRadius:16,background:"var(--surface)",border:"1px solid var(--border)",boxShadow:"0 8px 18px rgba(29,24,20,0.03)"}}>
-                <div style={{fontSize:10.5,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{item.label}</div>
-                <div style={{fontSize:18,fontWeight:900,color:"var(--text)",lineHeight:1.08,fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:5}}>{item.value}</div>
-                <div style={{fontSize:10.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:4}}>{item.meta}</div>
-              </div>
-            ))}
-          </div>
+          {!!summaryFacts.length&&(
+            <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid rgba(96,73,63,0.08)",fontSize:12.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.65}}>
+              {summaryFacts.join(" · ")}
+            </div>
+          )}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:10}}>
+          {primaryTopMetrics.map(item=>(
+            <div key={item.label} style={topMetricCard}>
+              <div style={{fontSize:11.5,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{item.label}</div>
+              <div style={{fontSize:compact?22:24,fontWeight:900,color:"var(--text)",lineHeight:1.06,fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:8}}>{item.value}</div>
+              <div style={{fontSize:11,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:4}}>{item.meta}</div>
+            </div>
+          ))}
         </div>
       </div>
 
+      <div style={{display:"grid",gridTemplateColumns:compact?"repeat(2,minmax(0,1fr))":"repeat(4,minmax(0,1fr))",gap:10,marginBottom:12}}>
+        {operationalTopMetrics.map(item=>(
+          <div key={item.label} style={supportingMetricCard}>
+            <div style={{fontSize:10.5,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{item.label}</div>
+            <div style={{fontSize:19,fontWeight:900,color:"var(--text)",lineHeight:1.08,fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:6}}>{item.value}</div>
+            <div style={{fontSize:10.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:4}}>{item.meta}</div>
+          </div>
+        ))}
+      </div>
+
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:10,marginBottom:12}}>
-        {[
-          {label:"Ready to Drink",value:`${readyCount}`,meta:`${Math.round((readyCount/Math.max(1,col.length))*100)}% of cellar`,onClick:()=>setKpiListOpen({title:"Ready to Drink",rows:readyWines,subtitle:"Wines currently in drinking window."})},
-          {label:"Past Peak Risk (12m)",value:`${pastPeakSoonCount}`,meta:"Ends this/next year",onClick:()=>setKpiListOpen({title:"Past Peak Risk (12 Months)",rows:pastPeakSoonWines,subtitle:"Wines whose drink window ends this year or next year."})},
-          {label:"Low Stock Wines",value:`${lowStockCount}`,meta:"1-2 bottles left",onClick:()=>setKpiListOpen({title:"Low Stock Wines",rows:lowStockWines,subtitle:"Wines with one or two bottles left."})},
-          {label:"Average Bottle RRP",value:`$${avgBottle.toLocaleString(undefined,{maximumFractionDigits:0})}`,meta:"Across purchased stock"},
-        ].map(card=>(
+        {secondaryMetricCards.map(card=>(
           <button
             key={card.label}
             onClick={card.onClick}
@@ -7870,12 +7963,13 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
               <div style={tinyLabel}>Cellar Readiness</div>
               <div style={{fontSize:12.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:4,lineHeight:1.55}}>Drink-window position across the current cellar.</div>
             </div>
-            <div style={{padding:"8px 10px",borderRadius:14,background:"rgba(255,255,255,0.62)",border:"1px solid rgba(96,73,63,0.08)",fontSize:11.5,color:"var(--text)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+            <div style={sectionBadge}>
               {readyCount} ready now
             </div>
           </div>
           <div style={{display:"flex",gap:14,alignItems:"center",flexWrap:"wrap"}}>
-            <div style={{width:132,height:132,borderRadius:"50%",background:ringBg,display:"grid",placeItems:"center",flexShrink:0}}>
+            <div style={{width:144,height:144,borderRadius:24,background:"var(--surface)",border:"1px solid var(--border)",display:"grid",placeItems:"center",flexShrink:0}}>
+              <div style={{width:132,height:132,borderRadius:"50%",background:ringBg,display:"grid",placeItems:"center"}}>
               <div style={{width:88,height:88,borderRadius:"50%",background:"var(--card)",display:"grid",placeItems:"center",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.34)"}}>
                 <div style={{textAlign:"center"}}>
                   <div style={{fontSize:23,fontWeight:900,color:"var(--text)",lineHeight:1,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{col.length}</div>
@@ -7883,21 +7977,19 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
                 </div>
               </div>
             </div>
+            </div>
             <div style={{flex:1,minWidth:190}}>
-              {[
-                {label:"Ready now",count:readyCount,color:readinessPalette.ready},
-                {label:"Not ready",count:notReadyCount,color:readinessPalette.early},
-                {label:"Past peak",count:pastPeakCount,color:readinessPalette.late},
-                {label:"No window",count:noWindowCount,color:readinessPalette.none},
-              ].map(row=>(
-                <div key={row.label} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 0"}}>
+              <div style={{display:"grid",gap:8}}>
+              {readinessRows.map(row=>(
+                <div key={row.label} style={{...microMetricTile,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px"}}>
                   <div style={{display:"flex",alignItems:"center",gap:7}}>
                     <span style={{width:8,height:8,borderRadius:"50%",background:row.color,display:"inline-block"}}/>
                     <span style={{fontSize:12,color:"var(--text)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{row.label}</span>
                   </div>
-                  <span style={{fontSize:12,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{row.count}</span>
+                  <span style={{fontSize:12.5,color:"var(--text)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{row.count}</span>
                 </div>
               ))}
+              </div>
             </div>
           </div>
         </div>
@@ -7908,27 +8000,17 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
               <div style={tinyLabel}>Cellar Intelligence</div>
               <div style={{fontSize:12.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:4,lineHeight:1.55}}>Financial and composition signals across the cellar.</div>
             </div>
-            <div style={{padding:"8px 10px",borderRadius:14,background:"rgba(255,255,255,0.62)",border:"1px solid rgba(96,73,63,0.08)",fontSize:11.5,color:"var(--text)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+            <div style={sectionBadge}>
               {topVarietals[0]?.[0]||"—"} leads
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-            <div style={microMetricTile}>
-              <div style={{fontSize:10.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Average Bottle RRP</div>
-              <div style={{fontSize:15,color:"var(--text)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>${avgBottle.toLocaleString(undefined,{maximumFractionDigits:2})}</div>
-            </div>
-            <div style={microMetricTile}>
-              <div style={{fontSize:10.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Stock Still On Hand</div>
-              <div style={{fontSize:15,color:"var(--text)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{purchasedBottles?Math.round((bottlesLeft/purchasedBottles)*100):0}%</div>
-            </div>
-            <div style={microMetricTile}>
-              <div style={{fontSize:10.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Most Common Origin</div>
-              <div style={{fontSize:15,color:"var(--text)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{topRegion}</div>
-            </div>
-            <div style={microMetricTile}>
-              <div style={{fontSize:10.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Top Varietal</div>
-              <div style={{fontSize:15,color:"var(--text)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{topVarietals[0]?.[0]||"—"}</div>
-            </div>
+            {intelligenceRows.map(item=>(
+              <div key={item.label} style={microMetricTile}>
+                <div style={{fontSize:10.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{item.label}</div>
+                <div style={{fontSize:15,color:"var(--text)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:4}}>{item.value}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -7941,7 +8023,7 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
           </div>
           <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"1.1fr 0.9fr",gap:12,alignItems:"start"}}>
             <WineBottleViz types={types} total={col.length}/>
-            <div>
+            <div style={{padding:"12px 14px",borderRadius:18,background:"var(--surface)",border:"1px solid var(--border)"}}>
               <div style={{...tinyLabel,marginBottom:8}}>Top Varietals</div>
               {topVarietals.length?topVarietals.map(([name,count])=>{
                 const pct=Math.round((count/Math.max(1,col.length))*100);
@@ -8011,7 +8093,8 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
           </div>
           {recentActivity.length?(
             recentActivity.map((ev,idx)=>(
-              <div key={`${ev.title}-${ev.detail}-${ev.ts}-${idx}`} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"11px 0",borderBottom:idx<recentActivity.length-1?"1px solid rgba(96,73,63,0.08)":"none"}}>
+              <div key={`${ev.title}-${ev.detail}-${ev.ts}-${idx}`} style={{...feedItemCard,borderBottom:idx<recentActivity.length-1?"1px solid rgba(96,73,63,0.08)":"none"}}>
+                <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
                 <span style={{width:9,height:9,borderRadius:"50%",background:"var(--accent)",marginTop:5,flexShrink:0,boxShadow:"0 0 0 4px rgba(var(--accentRgb),0.08)"}}/>
                 <div style={{minWidth:0}}>
                   <div style={{fontSize:12,color:"var(--text)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{ev.title}</div>
@@ -8019,6 +8102,7 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
                 </div>
                 <div style={{marginLeft:"auto",fontSize:10,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",whiteSpace:"nowrap"}}>
                   {new Date(ev.ts).toLocaleString("en-AU",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}
+                </div>
                 </div>
               </div>
             ))
@@ -8030,19 +8114,14 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
         <div style={{...panel,padding:"18px 18px"}}>
           <div style={{...tinyLabel,marginBottom:8}}>Quick Actions</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-            {[
-              {label:"Export",icon:"export",onClick:()=>setExportOpen(true)},
-              {label:"Start Audit",icon:"audit",onClick:()=>onNavigateTab?.("audit")},
-              {label:"Sommelier",icon:"chat",onClick:()=>onNavigateTab?.("ai")},
-              {label:"Add Wine",icon:"plus",onClick:()=>onNavigateTab?.("collection")},
-            ].map(action=>(
-              <button key={action.label} onClick={action.onClick} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,padding:"13px 13px",borderRadius:16,border:"1px solid rgba(96,73,63,0.1)",background:"rgba(255,255,255,0.66)",color:"var(--text)",fontSize:12.5,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",cursor:"pointer",boxShadow:"0 12px 24px rgba(64,45,36,0.05)"}}>
+            {quickActions.map(action=>(
+              <button key={action.label} onClick={action.onClick} style={quickActionCard}>
                 <span style={{display:"inline-flex",alignItems:"center",gap:8}}><Icon n={action.icon} size={14} color="var(--accent)"/><span>{action.label}</span></span>
                 <Icon n="chevR" size={12} color="var(--sub)"/>
               </button>
             ))}
           </div>
-          <button onClick={()=>setView("explore")} style={{marginTop:8,width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"13px 14px",borderRadius:16,border:"1px solid rgba(var(--accentRgb),0.18)",background:"linear-gradient(180deg,rgba(var(--accentRgb),0.1),rgba(var(--accentRgb),0.04))",color:"var(--accent)",fontSize:12.5,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",cursor:"pointer",boxShadow:"0 14px 28px rgba(var(--accentRgb),0.08)"}}>
+          <button onClick={()=>setView("explore")} style={{marginTop:8,width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"13px 14px",borderRadius:16,border:"1px solid rgba(var(--accentRgb),0.18)",background:"var(--card)",color:"var(--accent)",fontSize:12.5,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",cursor:"pointer",boxShadow:"0 8px 18px rgba(var(--accentRgb),0.06)"}}>
             <span style={{display:"inline-flex",alignItems:"center",gap:7}}><Icon n="mappin" size={14} color="var(--accent)"/>Explore Wineries</span>
             <Icon n="chevR" size={13} color="var(--accent)"/>
           </button>
