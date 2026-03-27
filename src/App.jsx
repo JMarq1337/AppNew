@@ -3,7 +3,7 @@ import { authApi, dbApi } from "./apiClient";
 import { wineHoldings2021 } from "./data/wineHoldings2021";
 import * as ExcelJSImport from "exceljs";
 
-const APP_VERSION = "8.44";
+const APP_VERSION = "8.45";
 const ADMIN_PIN_DIGITS = 8;
 const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
 const CHANGE_LOG_KEY = "vino_change_log_v1";
@@ -3107,6 +3107,11 @@ const WineDetail=({wine,onEdit,onDelete,onMove,onAdjustConsumption,onDuplicate})
   const drinkWindow=(m.drinkStart||m.drinkEnd)?`${m.drinkStart||"?"} - ${m.drinkEnd||"?"}`:null;
   const paidPerBottle=safeNum(m.pricePerBottle);
   const rrpPerBottle=safeNum(m.rrp);
+  const journal=toJournalState(wine);
+  const primaryReview=normalizeReviewEntry(journal.primary);
+  const otherReviews=normalizeOtherReviews(journal.otherReviews);
+  const personalNotes=(journal.personalNotes||"").trim();
+  const hasJournalBlock=hasReviewEntryValue(primaryReview)||otherReviews.length>0||!!personalNotes;
   const hasPhoto=!!wine.photo;
   const [isMobile,setIsMobile]=useState(()=>window.innerWidth<760);
   useEffect(()=>{
@@ -3115,91 +3120,135 @@ const WineDetail=({wine,onEdit,onDelete,onMove,onAdjustConsumption,onDuplicate})
     return()=>window.removeEventListener("resize",onResize);
   },[]);
   const desktopFloatingAside=hasPhoto&&!isMobile;
-  const titleCard=(
-    <div style={{borderRadius:22,background:"var(--card)",padding:"22px 22px 20px",position:"relative",overflow:"hidden",minHeight:118,border:"1px solid var(--border)",boxShadow:"0 8px 22px rgba(15,23,42,0.05)",animation:"heroGlassIn .25s ease-out"}}>
-      <div style={{position:"absolute",left:22,right:22,top:0,height:2,borderRadius:999,background:"rgba(var(--accentRgb),0.78)",pointerEvents:"none"}}/>
-      <div style={{position:"relative",zIndex:1}}>
-        <WineTypePill type={type} label={varietal}/>
-      </div>
-      <div style={{fontFamily:DISPLAY_FONT,fontSize:34,fontWeight:800,color:"var(--text)",marginTop:12,lineHeight:0.98,position:"relative",zIndex:1,letterSpacing:"-0.03em"}}>{wine.name}</div>
-      {(wine.vintage||geo.region||geo.country)&&<div style={{fontSize:14,color:"var(--sub)",marginTop:8,fontFamily:"'Plus Jakarta Sans',sans-serif",position:"relative",zIndex:1}}>{[wine.vintage,geo.region||geo.country,geo.country&&geo.region?geo.country:null].filter(Boolean).join(" · ")}</div>}
-    </div>
-  );
+  const detailRows=[
+    {label:"Varietal",value:varietal},
+    {label:"Category",value:category},
+    {label:"Readiness",value:ready.label},
+    {label:"Drink Window",value:drinkWindow||"Not set"},
+    {label:"Location",value:formatWineLocation(wine)||"Unassigned"},
+    {label:"Supplier",value:m.supplier||"Not recorded"},
+    {label:"Purchased Date",value:fmt(wine.datePurchased)||"Not recorded"},
+    {label:"Inventory Date",value:addedDateText||"Not recorded"},
+    {label:"Paid / Bottle",value:paidPerBottle?`$${paidPerBottle.toFixed(2)}`:"Not recorded"},
+    {label:"RRP / Bottle",value:rrpPerBottle?`$${rrpPerBottle.toFixed(2)}`:"Not recorded"},
+  ];
   return(
-    <div style={desktopFloatingAside?{maxWidth:980,margin:"0 auto",display:"grid",gridTemplateColumns:"260px minmax(0,1fr)",gap:22,alignItems:"start"}:{}}>
+    <div style={desktopFloatingAside?{maxWidth:1020,margin:"0 auto",display:"grid",gridTemplateColumns:"260px minmax(0,1fr)",gap:22,alignItems:"start"}:{}}>
       {desktopFloatingAside&&(
-        <div style={{pointerEvents:"none",zIndex:3,position:"sticky",top:12,background:"var(--card)",border:"1px solid var(--border)",borderRadius:24,padding:"20px 16px",boxShadow:"0 10px 24px rgba(15,23,42,0.06)"}}>
+        <div style={{pointerEvents:"none",zIndex:3,position:"sticky",top:12,background:"var(--card)",border:"1px solid var(--border)",borderRadius:22,padding:"20px 16px",boxShadow:"0 10px 24px rgba(15,23,42,0.06)"}}>
           <WinePhotoImage src={wine.photo} alt={wine.name} style={{width:"100%",height:"100%",maxHeight:520,objectFit:"contain",objectPosition:"center",filter:"drop-shadow(0 20px 22px rgba(0,0,0,.2)) drop-shadow(0 4px 10px rgba(0,0,0,.12))",animation:"heroPhotoFloat .3s ease-out both"}}/>
         </div>
       )}
-      <div style={desktopFloatingAside?{background:"var(--card)",border:"1px solid var(--border)",borderRadius:24,padding:18,boxShadow:"0 10px 24px rgba(15,23,42,0.06)"}:{}}>
-        {desktopFloatingAside?(
-          <div style={{marginBottom:16}}>{titleCard}</div>
-        ):(
-          hasPhoto&&isMobile?(
+      <div style={desktopFloatingAside?{background:"var(--card)",border:"1px solid var(--border)",borderRadius:22,padding:20,boxShadow:"0 10px 24px rgba(15,23,42,0.06)"}:{}}>
+        {!desktopFloatingAside&&hasPhoto&&isMobile&&(
             <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:20,padding:12,display:"grid",gridTemplateColumns:"132px minmax(0,1fr)",gap:12,alignItems:"stretch",marginBottom:18,boxShadow:"0 8px 20px rgba(15,23,42,0.06)"}}>
               <div style={{borderRadius:16,position:"relative",display:"flex",alignItems:"center",justifyContent:"center",padding:"8px 4px",background:"var(--surface)"}}>
                 <WinePhotoImage src={wine.photo} alt={wine.name} style={{width:"100%",height:"100%",maxHeight:184,objectFit:"contain",objectPosition:"center",filter:"drop-shadow(0 14px 18px rgba(0,0,0,.2)) drop-shadow(0 2px 6px rgba(0,0,0,.12))",animation:"heroPhotoFloat .3s ease-out both"}}/>
               </div>
-              {titleCard}
-            </div>
-          ):(
-            <div style={{marginBottom:16}}>
-              {titleCard}
-            </div>
-          )
+	              <div style={{display:"flex",flexDirection:"column",justifyContent:"center"}}>
+	                <WineTypePill type={type} label={varietal}/>
+	                <div style={{fontFamily:DISPLAY_FONT,fontSize:30,fontWeight:800,color:"var(--text)",marginTop:12,lineHeight:0.98,letterSpacing:"-0.03em"}}>{wine.name}</div>
+	                {(wine.vintage||geo.region||geo.country)&&<div style={{fontSize:14,color:"var(--sub)",marginTop:8,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{[wine.vintage,geo.region||geo.country,geo.country&&geo.region?geo.country:null].filter(Boolean).join(" · ")}</div>}
+	              </div>
+	            </div>
         )}
+	        <div style={{marginBottom:18}}>
+          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:16,flexWrap:"wrap"}}>
+            <div style={{minWidth:0,maxWidth:620}}>
+              <WineTypePill type={type} label={varietal}/>
+              <div style={{fontFamily:DISPLAY_FONT,fontSize:36,fontWeight:800,color:"var(--text)",marginTop:12,lineHeight:0.98,letterSpacing:"-0.03em"}}>{wine.name}</div>
+              {(wine.vintage||geo.region||geo.country)&&<div style={{fontSize:14,color:"var(--sub)",marginTop:8,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{[wine.vintage,geo.region||geo.country,geo.country&&geo.region?geo.country:null].filter(Boolean).join(" · ")}</div>}
+              {!wine.wishlist&&(
+                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginTop:12}}>
+                  <span style={{padding:"6px 10px",borderRadius:999,background:`rgba(${hexToRgb(ready.color)},0.1)`,border:"1px solid rgba(17,24,39,0.08)",fontSize:11,fontWeight:700,color:ready.color,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{ready.label}</span>
+                  {drinkWindow&&<span style={{padding:"6px 10px",borderRadius:999,background:"var(--surface)",border:"1px solid var(--border)",fontSize:11,fontWeight:700,color:"var(--text)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{drinkWindow}</span>}
+                  {wine.alcohol&&<span style={{padding:"6px 10px",borderRadius:999,background:"var(--surface)",border:"1px solid var(--border)",fontSize:11,fontWeight:700,color:"var(--text)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{wine.alcohol}% alc</span>}
+                </div>
+              )}
+            </div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
+              <Btn variant="secondary" onClick={onEdit} icon="edit">Edit</Btn>
+              {onDuplicate&&<Btn variant="secondary" onClick={onDuplicate} icon="duplicate">Duplicate</Btn>}
+              <Btn variant="danger" onClick={onDelete} icon="trash">Delete</Btn>
+            </div>
+          </div>
+        </div>
+
         {!wine.wishlist&&(
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
-            {[["Purchased",purchasedTotal],["Left",bottlesLeft],["Consumed",consumedCount]].map(([label,val])=>(
-              <div key={label} style={{background:"var(--card)",borderRadius:16,padding:"14px 14px 12px",border:"1px solid var(--border)"}}>
-                <div style={{fontSize:11,color:"var(--sub)",fontWeight:700,marginBottom:5,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{label}</div>
-                <div style={{fontSize:24,color:"var(--text)",fontWeight:900,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.05}}>{val}</div>
+          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,minmax(0,1fr))",gap:12,marginBottom:16,paddingBottom:16,borderBottom:"1px solid rgba(96,73,63,0.08)"}}>
+            {[
+              {label:"Purchased",value:purchasedTotal},
+              {label:"Left",value:bottlesLeft},
+              {label:"Consumed",value:consumedCount},
+              {label:"On-Hand Value",value:rrpPerBottle?`$${(rrpPerBottle*bottlesLeft).toFixed(0)}`:"—"},
+            ].map(item=>(
+              <div key={item.label}>
+                <div style={{fontSize:10.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:6}}>{item.label}</div>
+                <div style={{fontSize:24,color:"var(--text)",fontWeight:900,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.02}}>{item.value}</div>
               </div>
             ))}
           </div>
         )}
+
         {!wine.wishlist&&onAdjustConsumption&&(
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,background:"var(--card)",borderRadius:16,border:"1px solid var(--border)",padding:"14px 16px",marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:14,flexWrap:"wrap",padding:"14px 0 16px",borderBottom:"1px solid rgba(96,73,63,0.08)",marginBottom:16}}>
             <div>
               <div style={{fontSize:11,color:"var(--sub)",fontWeight:700,marginBottom:4,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Consumption</div>
               <div style={{fontSize:13,color:"var(--text)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{consumedCount} consumed · {bottlesLeft} left</div>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
               <button disabled={consumedCount<=0} onClick={()=>onAdjustConsumption(-1)} style={{width:34,height:34,borderRadius:12,border:"1px solid var(--border)",background:"var(--card)",color:"var(--text)",fontSize:18,lineHeight:1,cursor:consumedCount>0?"pointer":"default",opacity:consumedCount>0?1:0.4}}>−</button>
-              <button disabled={bottlesLeft<=0} onClick={()=>onAdjustConsumption(1)} style={{padding:"9px 14px",borderRadius:12,border:"1px solid rgba(var(--accentRgb),0.18)",background:"var(--accent)",color:"#fff",fontSize:12,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",cursor:bottlesLeft>0?"pointer":"default",opacity:bottlesLeft>0?1:0.45}}>Drink +1</button>
+              <button disabled={bottlesLeft<=0} onClick={()=>onAdjustConsumption(1)} style={{padding:"10px 14px",borderRadius:12,border:"1px solid rgba(var(--accentRgb),0.18)",background:"var(--accent)",color:"#fff",fontSize:12,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",cursor:bottlesLeft>0?"pointer":"default",opacity:bottlesLeft>0?1:0.45}}>Drink +1</button>
             </div>
           </div>
         )}
-        {!wine.wishlist&&addedDateText&&(
-          <div style={{fontSize:13,color:"var(--sub)",marginBottom:14,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-            Added to inventory on: <span style={{color:"var(--text)",fontWeight:700}}>{addedDateText}</span>
-          </div>
-        )}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-          {[
-            {label:"Varietal",value:varietal},
-            {label:"Alcohol",value:wine.alcohol?`${wine.alcohol}%`:null},
-            {label:"Category",value:category,forceLeft:true},
-            ...(!wine.wishlist?[{label:"Readiness",value:ready.label}]:[]),
-            ...(!wine.wishlist?[{label:"Drink Window",value:drinkWindow}]:[]),
-            ...(!wine.wishlist?[{label:"RRP / Bottle",value:rrpPerBottle?`$${rrpPerBottle.toFixed(2)}`:null}]:[]),
-            ...(!wine.wishlist?[{label:"Paid / Bottle",value:paidPerBottle?`$${paidPerBottle.toFixed(2)}`:null}]:[]),
-            ...(!wine.wishlist?[{label:"Location",value:formatWineLocation(wine)||null}]:[]),
-            {label:"Purchased Date",value:fmt(wine.datePurchased)},
-          ].filter(item=>item&&item.value).map(item=>(
-            <div key={item.label} style={{background:"var(--card)",borderRadius:16,padding:"14px 15px",gridColumn:item.forceLeft?"1":"auto",border:"1px solid var(--border)"}}>
-              <div style={{fontSize:11,color:"var(--sub)",fontWeight:700,marginBottom:5,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{item.label}</div>
+
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",columnGap:26,rowGap:0,marginBottom:hasJournalBlock?18:8}}>
+          {detailRows.map((item,idx)=>(
+            <div key={item.label} style={{padding:idx<2?"0 0 12px":"12px 0",borderTop:idx<2?"none":"1px solid rgba(96,73,63,0.08)"}}>
+              <div style={{fontSize:10.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:5}}>{item.label}</div>
               <div style={{fontSize:14.5,color:"var(--text)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.45}}>{item.value}</div>
             </div>
           ))}
         </div>
+
+        {hasJournalBlock&&(
+          <div style={{paddingTop:16,borderTop:"1px solid rgba(96,73,63,0.08)"}}>
+            <div style={{fontSize:11,color:"var(--sub)",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:10}}>Journal Context</div>
+            {hasReviewEntryValue(primaryReview)&&(
+              <div style={{marginBottom:12}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:6,flexWrap:"wrap"}}>
+                  <div style={{fontSize:13,color:"var(--text)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{primaryReview.reviewer||"Primary Review"}</div>
+                  {primaryReview.rating&&<div style={{fontSize:12,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{primaryReview.rating}</div>}
+                </div>
+                <div style={{fontSize:13,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.65}}>{primaryReview.text}</div>
+              </div>
+            )}
+            {!!personalNotes&&(
+              <div style={{marginBottom:otherReviews.length?12:0}}>
+                <div style={{fontSize:13,color:"var(--text)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:6}}>Personal Notes</div>
+                <div style={{fontSize:13,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.65}}>{personalNotes}</div>
+              </div>
+            )}
+            {otherReviews.length>0&&(
+              <div>
+                <div style={{fontSize:13,color:"var(--text)",fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:8}}>Other Reviews</div>
+                <div style={{display:"grid",gap:8}}>
+                  {otherReviews.slice(0,2).map((entry,idx)=>(
+                    <div key={`${entry.reviewer}-${idx}`} style={{paddingTop:idx===0?0:8,borderTop:idx===0?"none":"1px solid rgba(96,73,63,0.08)"}}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap",marginBottom:4}}>
+                        <div style={{fontSize:12.5,color:"var(--text)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{entry.reviewer||`Review ${idx+1}`}</div>
+                        {entry.rating&&<div style={{fontSize:11.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{entry.rating}</div>}
+                      </div>
+                      <div style={{fontSize:12.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6}}>{entry.text}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {wine.wishlist&&onMove&&<div style={{marginBottom:8}}><Btn full onClick={onMove}>Move to Collection</Btn></div>}
-        <div style={{display:"grid",gridTemplateColumns:onDuplicate?"repeat(3,minmax(0,1fr))":"repeat(2,minmax(0,1fr))",gap:8,marginTop:12}}>
-          <Btn variant="secondary" onClick={onEdit} full icon="edit">Edit</Btn>
-          {onDuplicate&&<Btn variant="secondary" onClick={onDuplicate} full icon="duplicate">Duplicate</Btn>}
-          <Btn variant="danger" onClick={onDelete} full icon="trash">Delete</Btn>
-        </div>
       </div>
     </div>
   );
@@ -3433,33 +3482,33 @@ const WineForm=({initial,onSave,onClose,isWishlist,locationOptions=[],savedLocat
   const sectionCardStyle={
     background:"var(--card)",
     border:"1px solid var(--border)",
-    borderRadius:20,
+    borderRadius:18,
     padding:"18px 18px 16px",
     marginBottom:12,
-    boxShadow:"0 6px 18px rgba(15,23,42,0.04)"
+    boxShadow:"0 8px 20px rgba(15,23,42,0.04)"
   };
   const duplicateSectionCardStyle={
     background:"var(--card)",
     border:"1px solid var(--border)",
-    borderRadius:20,
+    borderRadius:18,
     padding:"18px 18px 16px",
     marginBottom:12,
-    boxShadow:"0 6px 18px rgba(15,23,42,0.04)"
+    boxShadow:"0 8px 20px rgba(15,23,42,0.04)"
   };
   const sectionTitleStyle={display:"flex",alignItems:"center",gap:8,fontSize:13,color:"var(--text)",fontWeight:800,marginBottom:10,fontFamily:"'Plus Jakarta Sans',sans-serif"};
   const sectionTitleDotStyle={width:8,height:8,borderRadius:"50%",background:"var(--accent)"};
   const sectionHintStyle={fontSize:12.5,color:"var(--sub)",marginBottom:12,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6,fontWeight:500};
-  const journalBlockStyle={background:"var(--surface)",border:"1px solid var(--border)",borderRadius:16,padding:"14px 15px"};
-  const topShellStyle={background:"var(--card)",border:"1px solid var(--border)",borderRadius:22,padding:"16px",marginTop:-2,marginBottom:14,boxShadow:"0 6px 18px rgba(15,23,42,0.04)"};
+  const journalBlockStyle={background:"var(--card)",border:"1px solid var(--border)",borderRadius:16,padding:"14px 15px",boxShadow:"0 4px 12px rgba(15,23,42,0.03)"};
+  const topShellStyle={background:"var(--card)",border:"1px solid var(--border)",borderRadius:20,padding:"18px",marginTop:0,marginBottom:14,boxShadow:"0 8px 20px rgba(15,23,42,0.04)"};
   const topMetaPillStyle={display:"inline-flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:999,border:"1px solid rgba(var(--accentRgb),0.12)",background:"rgba(var(--accentRgb),0.05)",fontSize:11,fontWeight:700,color:"var(--accent)",fontFamily:"'Plus Jakarta Sans',sans-serif"};
-  const detailsGridStyle={display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(250px,1fr))",gap:12};
+  const detailsGridStyle={display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:12};
   const duplicateDetailsGridStyle={display:"grid",gridTemplateColumns:"1fr",gap:12,alignItems:"start"};
   const actionRailStyle=embedded&&isDuplicateMode
     ? {position:"sticky",bottom:12,zIndex:5,marginTop:18,paddingTop:12}
-    : {position:"sticky",bottom:0,zIndex:3,marginTop:12,paddingTop:10,background:"linear-gradient(180deg,rgba(255,255,255,0),var(--surface) 22%)"};
+    : {position:"sticky",bottom:0,zIndex:3,marginTop:12,paddingTop:10,background:"linear-gradient(180deg,rgba(250,249,247,0),var(--bg) 22%)"};
   const actionRailBoxStyle=embedded&&isDuplicateMode
-    ? {display:"flex",gap:8,padding:"12px",borderRadius:18,border:"1px solid var(--border)",background:"var(--card)",boxShadow:"0 8px 20px rgba(15,23,42,0.08)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)"}
-    : {display:"flex",gap:8,padding:"10px",borderRadius:16,border:"1px solid var(--border)",background:"rgba(255,255,255,0.92)",boxShadow:"0 8px 20px rgba(15,23,42,0.06)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)"};
+    ? {display:"flex",gap:8,padding:"12px",borderRadius:16,border:"1px solid var(--border)",background:"var(--card)",boxShadow:"0 8px 20px rgba(15,23,42,0.08)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)"}
+    : {display:"flex",gap:8,padding:"10px",borderRadius:16,border:"1px solid var(--border)",background:"rgba(255,255,255,0.94)",boxShadow:"0 8px 20px rgba(15,23,42,0.06)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)"};
   const saveActionLabel=isDuplicateMode?"Save Duplicate":initial?"Save Changes":"Save Wine";
   const sectionTitle=(label)=>(
     <div style={sectionTitleStyle}>
@@ -4252,9 +4301,10 @@ const FilterPanel=({filters,setFilters,wines,onClose})=>{
     fontFamily:"'Plus Jakarta Sans',sans-serif",
     transition:"all 0.15s"
   });
-  const sectionCard={background:"var(--card)",border:"1px solid var(--border)",borderRadius:16,padding:"15px 15px 14px",boxShadow:"0 6px 16px rgba(15,23,42,0.04)"};
-  const sectionLabel={fontSize:11,fontWeight:700,color:"var(--sub)",marginBottom:10,fontFamily:"'Plus Jakarta Sans',sans-serif"};
-  const selectBase={background:"var(--surface)",fontSize:13,fontWeight:700,borderRadius:14,padding:"10px 34px 10px 12px"};
+  const sectionBlock={padding:"14px 0",borderTop:"1px solid rgba(96,73,63,0.08)"};
+  const sectionLabel={fontSize:11,fontWeight:700,color:"var(--sub)",marginBottom:10,fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:"0.14em",textTransform:"uppercase"};
+  const sectionHelp={fontSize:12.5,color:"var(--sub)",marginBottom:10,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.55};
+  const selectBase={background:"var(--surface)",fontSize:13,fontWeight:700,borderRadius:12,padding:"10px 34px 10px 12px"};
   const withAll=(arr,label)=>[{value:"",label},...arr.map(v=>({value:v,label:v}))];
   const toggle=(field,val)=>setLocal(p=>({...p,[field]:p[field]===val?"":val}));
   return(
@@ -4263,9 +4313,10 @@ const FilterPanel=({filters,setFilters,wines,onClose})=>{
       <div style={{fontSize:13,color:"var(--sub)",marginBottom:14,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6,maxWidth:560}}>
         Refine the cellar by timing, readiness, origin, storage, and value without turning the interface into a wall of chips.
       </div>
-      <div style={{display:"grid",gap:10,marginBottom:10}}>
-        <div style={sectionCard}>
+      <div style={{display:"grid",gap:0,marginBottom:14}}>
+        <div style={{padding:"0 0 14px"}}>
           <div style={sectionLabel}>Sort & Order</div>
+          <div style={sectionHelp}>Choose the primary ordering for the visible cellar list.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8}}>
             <select
               value={local.sort}
@@ -4292,8 +4343,9 @@ const FilterPanel=({filters,setFilters,wines,onClose})=>{
             )}
           </div>
         </div>
-        <div style={sectionCard}>
+        <div style={sectionBlock}>
           <div style={sectionLabel}>Timeline</div>
+          <div style={sectionHelp}>Filter by recently added or recently updated cellar records.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
             <select value={local.addedRange} onChange={e=>setLocal(p=>({...p,addedRange:e.target.value}))} style={selectBase}>
               <option value="">Added: Any time</option>
@@ -4313,8 +4365,9 @@ const FilterPanel=({filters,setFilters,wines,onClose})=>{
             <button onClick={()=>setLocal(p=>({...p,sort:p.sort==="recentUpdated"?"name":"recentUpdated"}))} style={chip(local.sort==="recentUpdated")}>Recently Updated</button>
           </div>
         </div>
-        <div style={sectionCard}>
+        <div style={sectionBlock}>
           <div style={sectionLabel}>Wine Profile</div>
+          <div style={sectionHelp}>Narrow the list by varietal, category, and readiness state.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             <select value={local.varietal} onChange={e=>setLocal(p=>({...p,varietal:e.target.value}))} style={selectBase}>
               {withAll(varietals,"All Varietals").map(o=><option key={o.value||"all-varietal"} value={o.value}>{o.label}</option>)}
@@ -4327,8 +4380,9 @@ const FilterPanel=({filters,setFilters,wines,onClose})=>{
             {[{id:"ready",label:"Ready"},{id:"notReady",label:"Not Ready"},{id:"past",label:"Past Peak"},{id:"noWindow",label:"No Window"}].map(o=><button key={o.id} onClick={()=>toggle("readiness",o.id)} style={chip(local.readiness===o.id)}>{o.label}</button>)}
           </div>
         </div>
-        <div style={sectionCard}>
+        <div style={sectionBlock}>
           <div style={sectionLabel}>Origin</div>
+          <div style={sectionHelp}>Find wines by country and region without over-framing the controls.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             <select value={local.country} onChange={e=>setLocal(p=>({...p,country:e.target.value}))} style={selectBase}>
               {withAll(countries,"All Countries").map(o=><option key={o.value||"all-country"} value={o.value}>{o.label}</option>)}
@@ -4338,8 +4392,9 @@ const FilterPanel=({filters,setFilters,wines,onClose})=>{
             </select>
           </div>
         </div>
-        <div style={sectionCard}>
+        <div style={sectionBlock}>
           <div style={sectionLabel}>Cellar Location</div>
+          <div style={sectionHelp}>Scope the inventory by location and Kennards section where relevant.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             <select
               value={local.location}
@@ -4358,8 +4413,9 @@ const FilterPanel=({filters,setFilters,wines,onClose})=>{
             </select>
           </div>
         </div>
-        <div style={sectionCard}>
+        <div style={sectionBlock}>
           <div style={sectionLabel}>Price</div>
+          <div style={sectionHelp}>Use bottle value ranges to isolate budget through luxury holdings.</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
             {[{id:"budget",label:"<$25"},{id:"mid",label:"$25-$59"},{id:"premium",label:"$60-$119"},{id:"luxury",label:"$120+"}].map(o=><button key={o.id} onClick={()=>toggle("priceBand",o.id)} style={chip(local.priceBand===o.id)}>{o.label}</button>)}
           </div>
@@ -5176,24 +5232,32 @@ const AuditScreen=({wines,desktop,onSetWineBottles,onRemoveWine,onRevokeAudit,on
 
   return(
     <div>
-      <div style={{...auditGlass,padding:desktop?"18px 20px":"16px 16px 14px",marginBottom:16,position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",right:-10,top:-8,opacity:0.08,pointerEvents:"none"}}><BrandLogo size={desktop?104:88} variant="mono"/></div>
-        <div style={{position:"relative",zIndex:1,display:"grid",gridTemplateColumns:desktop?"minmax(0,1fr) auto":"1fr",gap:14,alignItems:"center"}}>
-            <div>
-              <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:800,color:"var(--sub)",letterSpacing:"1.8px",textTransform:"uppercase",marginBottom:5}}>Inventory Control</div>
-            <div style={{fontFamily:DISPLAY_FONT,fontSize:desktop?50:42,fontWeight:600,color:"var(--text)",lineHeight:0.9,marginBottom:10,letterSpacing:"-0.02em"}}>Audit</div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-              <span style={auditMetaChip}>{audits.length} saved</span>
-              <span style={auditMetaChip}>{locations.length||1} locations</span>
-              <span style={auditMetaChip}>{col.length} wines in cellar</span>
-            </div>
-          </div>
-          <div style={{display:"flex",justifyContent:desktop?"flex-end":"stretch"}}>
-            <button onClick={openStartAudit} style={{...auditPrimaryBtn,minWidth:desktop?154:"100%"}}>
-              Start Audit
-            </button>
-          </div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:16,marginBottom:18,flexWrap:"wrap"}}>
+        <div>
+          <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:700,color:"var(--sub)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Audit</div>
+          <div style={{fontFamily:DISPLAY_FONT,fontSize:desktop?42:34,fontWeight:800,color:"var(--text)",lineHeight:0.95,letterSpacing:"-0.03em"}}>Inventory Verification</div>
+          <div style={{fontSize:13,color:"var(--sub)",marginTop:8,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Verify stock by location, reconcile missing bottles, and keep the cellar aligned with physical inventory.</div>
         </div>
+        <div style={{display:"flex",justifyContent:desktop?"flex-end":"stretch"}}>
+          <button onClick={openStartAudit} style={{...auditPrimaryBtn,minWidth:desktop?154:"100%"}}>
+            Start Audit
+          </button>
+        </div>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:desktop?"repeat(4,minmax(0,1fr))":"repeat(2,minmax(0,1fr))",gap:10,marginBottom:16}}>
+        {[
+          {label:"Saved Audits",value:audits.length,meta:"all sessions"},
+          {label:"Locations",value:locations.length||1,meta:"available to audit"},
+          {label:"Wines",value:col.length,meta:"in active cellar"},
+          {label:"Sync",value:syncState==="ready"?"Cloud":"Local",meta:syncState==="ready"?"remote audits":"fallback mode"},
+        ].map(item=>(
+          <div key={item.label} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:18,padding:"15px 16px 14px",boxShadow:"0 8px 22px rgba(15,23,42,0.04)"}}>
+            <div style={{fontSize:11.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{item.label}</div>
+            <div style={{fontSize:24,fontWeight:900,color:"var(--text)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.05,marginTop:8}}>{item.value}</div>
+            <div style={{fontSize:10.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:5}}>{item.meta}</div>
+          </div>
+        ))}
       </div>
 
       {statusMsg&&(
@@ -6174,10 +6238,10 @@ const JournalScreen=({wines,onUpdate,desktop})=>{
   const listTitle=`${filtered.length} ${filtered.length===1?"wine":"wines"}`;
 
   const Controls=(
-    <div style={{position:"sticky",top:0,zIndex:2,background:"var(--card)",borderBottom:"1px solid rgba(96,73,63,0.1)",padding:"16px 16px 14px",borderTopLeftRadius:24,borderTopRightRadius:24}}>
+    <div style={{position:"sticky",top:0,zIndex:2,background:"var(--card)",borderBottom:"1px solid rgba(96,73,63,0.08)",padding:"16px 16px 14px"}}>
       <div style={{marginBottom:9}}>
-        <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:700,color:"var(--sub)",letterSpacing:"1.7px",textTransform:"uppercase",marginBottom:6}}>Journal</div>
-        <div style={{fontFamily:DISPLAY_FONT,fontSize:38,fontWeight:600,color:"var(--text)",lineHeight:0.95,letterSpacing:"-0.02em"}}>{listTitle}</div>
+        <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:700,color:"var(--sub)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:6}}>Journal Index</div>
+        <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:18,fontWeight:800,color:"var(--text)",lineHeight:1.1}}>{listTitle}</div>
       </div>
       <div style={{marginBottom:9,position:"relative"}}>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search wines, varietal, origin, or notes..." style={{paddingLeft:38,background:"var(--surface)",borderRadius:16}}/>
@@ -6211,9 +6275,16 @@ const JournalScreen=({wines,onUpdate,desktop})=>{
 
   return(
     <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:16,marginBottom:18,flexWrap:"wrap"}}>
+        <div>
+          <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:700,color:"var(--sub)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Journal</div>
+          <div style={{fontFamily:DISPLAY_FONT,fontSize:desktop?42:34,fontWeight:800,color:"var(--text)",lineHeight:0.95,letterSpacing:"-0.03em"}}>Tasting Notes</div>
+          <div style={{fontSize:13,color:"var(--sub)",marginTop:8,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Private tasting context, review history, and personal notes across the cellar.</div>
+        </div>
+      </div>
       {desktop
         ? <div style={{display:"grid",gridTemplateColumns:"minmax(320px,392px) minmax(0,1fr)",gap:16,alignItems:"start"}}>
-            <div style={{background:"var(--card)",borderRadius:20,border:"1px solid var(--border)",boxShadow:"0 8px 20px rgba(15,23,42,0.05)",overflow:"hidden",maxHeight:"calc(100vh - 128px)",display:"flex",flexDirection:"column"}}>
+            <div style={{background:"var(--card)",borderRadius:20,border:"1px solid var(--border)",boxShadow:"0 8px 20px rgba(15,23,42,0.05)",overflow:"hidden",maxHeight:"calc(100vh - 188px)",display:"flex",flexDirection:"column"}}>
               {Controls}
               <div style={{padding:"10px 10px 12px",overflowY:"auto"}}>
                 {filtered.length===0
@@ -6231,7 +6302,7 @@ const JournalScreen=({wines,onUpdate,desktop})=>{
               </div>
             </div>
             <div style={{position:"sticky",top:12}}>
-              <div style={{background:"var(--card)",borderRadius:20,border:"1px solid var(--border)",boxShadow:"0 8px 20px rgba(15,23,42,0.05)",padding:"18px"}}>
+              <div style={{background:"var(--card)",borderRadius:20,border:"1px solid var(--border)",boxShadow:"0 8px 20px rgba(15,23,42,0.05)",padding:"18px",minHeight:"calc(100vh - 188px)"}}>
                 {!selectedWine
                   ? <Empty icon="note" text="Select a wine to open its journal."/>
                   : editing
