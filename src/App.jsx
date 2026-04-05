@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useDeferredValue } from "react";
 import { authApi, dbApi } from "./apiClient";
 import { wineHoldings2021 } from "./data/wineHoldings2021";
 import * as ExcelJSImport from "exceljs";
 
-const APP_VERSION = "8.45";
+const APP_VERSION = "8.46";
 const ADMIN_PIN_DIGITS = 8;
 const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
 const CHANGE_LOG_KEY = "vino_change_log_v1";
@@ -2960,20 +2960,17 @@ const WineCard=({wine,onClick,mode="card"})=>{
       : ready.key==="early"
         ? "#6C7460"
         : "var(--sub)";
-  const readinessBadge=!wine.wishlist&&ready.key!=="none"?(
-    <span style={{display:"inline-flex",alignItems:"center",gap:6,padding:"5px 8px",borderRadius:10,background:`rgba(${hexToRgb(readinessTone)},0.08)`,border:"1px solid rgba(17,24,39,0.08)",fontSize:10.5,fontWeight:700,color:readinessTone,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-      <span style={{width:6,height:6,borderRadius:"50%",background:readinessTone,flexShrink:0}}/>
-      {ready.label}
-    </span>
-  ):null;
+  const readinessLabel=!wine.wishlist
+    ? (ready.key==="none"?"No window":ready.label)
+    : "";
   const cardBase={
     background:"var(--card)",
-    borderRadius:18,
-    padding:"14px",
+    borderRadius:16,
+    padding:"14px 15px",
     cursor:"pointer",
     border:"1px solid var(--border)",
     transition:"transform 0.18s, box-shadow 0.18s, border-color 0.18s",
-    boxShadow:"0 8px 22px rgba(15,23,42,0.04)",
+    boxShadow:"0 10px 26px rgba(15,23,42,0.045)",
     position:"relative",
     overflow:"hidden",
   };
@@ -2984,14 +2981,16 @@ const WineCard=({wine,onClick,mode="card"})=>{
   };
   const hoverOut=e=>{
     e.currentTarget.style.transform="none";
-    e.currentTarget.style.boxShadow="0 8px 22px rgba(15,23,42,0.04)";
+    e.currentTarget.style.boxShadow="0 10px 26px rgba(15,23,42,0.045)";
     e.currentTarget.style.borderColor="var(--border)";
   };
+  const factLabelStyle={fontSize:10.5,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"};
+  const factValueStyle={fontSize:12.5,color:"var(--text)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"};
   if(mode==="list"){
     return(
       <div
         onClick={onClick}
-        style={{...cardBase,display:"grid",gridTemplateColumns:"76px minmax(0,1.25fr) minmax(220px,0.95fr) 108px",gap:16,alignItems:"center",minHeight:100,padding:"14px 16px"}}
+        style={{...cardBase,display:"grid",gridTemplateColumns:"76px minmax(0,1.45fr) 160px minmax(180px,0.9fr) 138px 84px",gap:16,alignItems:"center",minHeight:94,padding:"14px 16px"}}
         onMouseEnter={hoverIn}
         onMouseLeave={hoverOut}
       >
@@ -2999,23 +2998,28 @@ const WineCard=({wine,onClick,mode="card"})=>{
         <div style={{minWidth:0}}>
           <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:16.5,fontWeight:800,color:"var(--text)",lineHeight:1.2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{wine.name}</div>
           {!!metaLine&&<div style={{fontSize:12.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{metaLine}</div>}
-          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginTop:8}}>
-            <WineTypePill type={type} label={varietal}/>
-            {readinessBadge}
+          <div style={{display:"flex",alignItems:"center",gap:8,marginTop:9,minWidth:0}}>
+            <span style={{width:7,height:7,borderRadius:"50%",background:readinessTone,flexShrink:0}}/>
+            <span style={{fontSize:12,color:readinessTone,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+              {readinessLabel}
+            </span>
+            {drinkWindow&&<span style={{fontSize:11.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>Window {drinkWindow}</span>}
           </div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:"10px 14px",alignSelf:"stretch",paddingLeft:14,borderLeft:"1px solid rgba(96,73,63,0.08)"}}>
-          {[
-            {label:"Storage",value:locationTag||"Unassigned"},
-            {label:"Drink Window",value:drinkWindow||ready.label},
-            {label:"Value",value:pricingLine||"No pricing"},
-            {label:"Timeline",value:timelineLine||"No date context"},
-          ].map(item=>(
-            <div key={item.label} style={{minWidth:0}}>
-              <div style={{fontSize:10.5,color:"var(--sub)",fontWeight:700,marginBottom:4,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{item.label}</div>
-              <div style={{fontSize:12.75,color:"var(--text)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={item.value}>{item.value}</div>
-            </div>
-          ))}
+        <div style={{minWidth:0}}>
+          <div style={factLabelStyle}>Cellaring</div>
+          <div style={{...factValueStyle,marginTop:4,color:readinessTone}} title={readinessLabel}>{readinessLabel}</div>
+          {drinkWindow&&<div style={{fontSize:11.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={drinkWindow}>Window {drinkWindow}</div>}
+        </div>
+        <div style={{minWidth:0}}>
+          <div style={factLabelStyle}>Storage</div>
+          <div style={{...factValueStyle,marginTop:4}} title={locationTag||"Unassigned"}>{locationTag||"Unassigned"}</div>
+          {timelineLine&&<div style={{fontSize:11.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={timelineLine}>{timelineLine}</div>}
+        </div>
+        <div style={{minWidth:0}}>
+          <div style={factLabelStyle}>Value</div>
+          <div style={{...factValueStyle,marginTop:4}} title={pricingLine||"No pricing"}>{pricingLine||"No pricing"}</div>
+          {rrpPerBottle&&bottlesLeft>0&&<div style={{fontSize:11.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:5}}>${(rrpPerBottle*bottlesLeft).toFixed(0)} on hand</div>}
         </div>
         <div style={{alignSelf:"stretch",display:"flex",flexDirection:"column",justifyContent:"space-between",alignItems:"flex-end"}}>
           {!wine.wishlist&&(
@@ -3035,7 +3039,7 @@ const WineCard=({wine,onClick,mode="card"})=>{
   return(
     <div
       onClick={onClick}
-      style={{...cardBase,display:"grid",gridTemplateColumns:"76px minmax(0,1fr)",gap:16,alignItems:"start",minHeight:134}}
+      style={{...cardBase,display:"grid",gridTemplateColumns:"76px minmax(0,1fr)",gap:16,alignItems:"start",minHeight:126}}
       onMouseEnter={hoverIn}
       onMouseLeave={hoverOut}
     >
@@ -3061,24 +3065,33 @@ const WineCard=({wine,onClick,mode="card"})=>{
             </div>
           )}
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-          <WineTypePill type={type} label={varietal}/>
-          {readinessBadge}
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:"10px 16px",paddingTop:10,borderTop:"1px solid rgba(96,73,63,0.08)"}}>
-          {[
-            {label:"Storage",value:locationTag||"Unassigned"},
-            {label:"Value",value:pricingLine||"No pricing"},
-            {label:"Drink Window",value:drinkWindow||ready.label},
-            {label:"Timeline",value:timelineLine||"No date context"},
-          ].map(item=>(
-            <div key={item.label} style={{minWidth:0}}>
-              <div style={{fontSize:10.5,fontWeight:700,color:"var(--sub)",marginBottom:4,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{item.label}</div>
-              <div style={{fontSize:12.25,color:"var(--text)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={item.value}>
-                {item.value}
-              </div>
+        {!wine.wishlist&&(
+          <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}>
+            <span style={{width:7,height:7,borderRadius:"50%",background:readinessTone,flexShrink:0}}/>
+            <span style={{fontSize:12.5,color:readinessTone,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+              {readinessLabel}
+            </span>
+            {drinkWindow&&<span style={{fontSize:11.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>Window {drinkWindow}</span>}
+          </div>
+        )}
+        {timelineLine&&(
+          <div style={{fontSize:11.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+            {timelineLine}
+          </div>
+        )}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:"12px 18px",paddingTop:12,borderTop:"1px solid rgba(96,73,63,0.08)"}}>
+          <div style={{minWidth:0}}>
+            <div style={factLabelStyle}>Storage</div>
+            <div style={{...factValueStyle,marginTop:4}} title={locationTag||"Unassigned"}>
+              {locationTag||"Unassigned"}
             </div>
-          ))}
+          </div>
+          <div style={{minWidth:0}}>
+            <div style={factLabelStyle}>Value</div>
+            <div style={{...factValueStyle,marginTop:4}} title={pricingLine||"No pricing"}>
+              {pricingLine||"No pricing"}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -4470,6 +4483,7 @@ const CollectionScreen=({wines,onAdd,onUpdate,onDelete,onAdjustConsumption,onDup
   const [rewindOpen,setRewindOpen]=useState(false);
   const [recentDelete,setRecentDelete]=useState(null);
   const [search,setSearch]=useState("");
+  const deferredSearch=useDeferredValue(search);
   const [filters,setFilters]=useState(DEFAULT_FILTERS);
   const [filterOpen,setFilterOpen]=useState(false);
   const [stockView,setStockView]=useState("all");
@@ -4478,7 +4492,7 @@ const CollectionScreen=({wines,onAdd,onUpdate,onDelete,onAdjustConsumption,onDup
   const locationOptions=dedupeLocations(col.map(w=>w.location));
   const originOptions=[...new Set(col.map(w=>normalizeOriginLabel(w.origin||"")).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   const reviewerSuggestions=reviewerSuggestionsFromWines(col);
-  const filteredBase=applyFilters(wines,filters,search);
+  const filteredBase=applyFilters(wines,filters,deferredSearch);
   const filt=stockView==="unconsumed"
     ? filteredBase.filter(w=>(safeNum(w.bottles)||0)>0)
     : filteredBase;
@@ -4503,48 +4517,67 @@ const CollectionScreen=({wines,onAdd,onUpdate,onDelete,onAdjustConsumption,onDup
   const visibleBottles=filt.reduce((sum,w)=>sum+Math.max(0,Math.round(safeNum(w?.bottles)||0)),0);
   const visibleReadyCount=filt.filter(w=>Math.max(0,Math.round(safeNum(w?.bottles)||0))>0&&wineReadiness(w).key==="ready").length;
   const visibleValue=filt.reduce((sum,w)=>sum+((safeNum(w?.cellarMeta?.rrp)||0)*Math.max(0,Math.round(safeNum(w?.bottles)||0))),0);
-  const locationCount=new Set(filt.map(w=>normalizeLocation(w?.location||"")).filter(Boolean)).size;
   const useRowLayout=desktop&&layoutMode==="rows";
   const inventoryContextCopy=search||active
-    ? `${visibleCount} wines match the current search and filter context.`
+    ? "Search, sort, and narrow the cellar without losing the operational view."
     : stockView==="unconsumed"
-      ? "Showing wines with bottles currently on hand across your active storage locations."
-      : "Full cellar record, including fully consumed bottles kept for historical context.";
+      ? "Current on-hand cellar stock, arranged for quick browsing and decisions."
+      : "Full cellar record, including consumed history kept for reference.";
   const resultsSummaryCopy=visibleCount===0
-    ? "No wines are currently visible in this inventory view."
-    : `${visibleCount} ${visibleCount===1?"wine":"wines"} shown, ${visibleBottles} ${visibleBottles===1?"bottle":"bottles"} currently on hand, and $${visibleValue.toLocaleString(undefined,{maximumFractionDigits:0})} in on-hand RRP value.`;
-  const resultModeLabel=`${stockView==="unconsumed"?"On-hand lens":"Full cellar lens"} · ${useRowLayout?"Row view":"Card view"}`;
-  const metricTile={
-    background:"var(--card)",
-    border:"1px solid var(--border)",
-    borderRadius:18,
-    padding:"15px 16px 14px",
-    boxShadow:"0 8px 22px rgba(15,23,42,0.04)",
-  };
-  const modulePanel={
-    background:"var(--card)",
-    border:"1px solid var(--border)",
-    borderRadius:18,
-    boxShadow:"0 8px 22px rgba(15,23,42,0.04)",
-  };
+    ? "No wines are visible in the current cellar view."
+    : `${visibleCount} ${visibleCount===1?"wine":"wines"} shown · ${visibleBottles} ${visibleBottles===1?"bottle":"bottles"} on hand · $${visibleValue.toLocaleString(undefined,{maximumFractionDigits:0})} RRP on hand`;
+  const resultModeLabel=`${stockView==="unconsumed"?"On hand":"Full cellar"} · ${useRowLayout?"Rows":"Cards"} · ${SORTS.find(o=>o.value===filters.sort)?.label||"Name A–Z"}`;
+  const topStats=[
+    {label:"Shown",value:visibleCount,meta:`${col.length} total wines`},
+    {label:"On hand",value:visibleBottles,meta:"bottles available"},
+    {label:"Value",value:`$${visibleValue.toLocaleString(undefined,{maximumFractionDigits:0})}`,meta:"on-hand RRP"},
+    {label:"Ready",value:visibleReadyCount,meta:"ready to drink"},
+  ];
+  const activeFilterSummary=[
+    filters.varietal,
+    filters.category,
+    ({ready:"Ready",notReady:"Not Ready",past:"Past Peak",noWindow:"No Window"}[filters.readiness]||""),
+    ({budget:"<$25",mid:"$25-$59",premium:"$60-$119",luxury:"$120+"}[filters.priceBand]||""),
+    filters.region,
+    filters.country,
+    filters.location,
+    filters.section?`Kennards ${filters.section}`:"",
+    ({"1d":"Added 24h","7d":"Added 7d","30d":"Added 30d"}[filters.addedRange]||""),
+    ({"1d":"Updated 24h","7d":"Updated 7d","30d":"Updated 30d"}[filters.updatedRange]||""),
+  ].filter(Boolean);
   const toolbarIconButton=activeState=>({
     height:46,
-    borderRadius:12,
+    borderRadius:13,
     background:"var(--card)",
-    border:activeState?"1px solid rgba(var(--accentRgb),0.18)":"1px solid var(--border)",
+    border:activeState?"1px solid rgba(var(--accentRgb),0.22)":"1px solid var(--border)",
     display:"flex",
     alignItems:"center",
     justifyContent:"center",
     color:activeState?"var(--accent)":"var(--sub)",
     position:"relative",
     cursor:"pointer",
-    boxShadow:"0 4px 12px rgba(15,23,42,0.04)"
+    boxShadow:"0 8px 20px rgba(15,23,42,0.05)"
+  });
+  const compactSwitch=activeState=>({
+    border:"1px solid transparent",
+    background:activeState?"var(--card)":"transparent",
+    color:activeState?"var(--text)":"var(--sub)",
+    boxShadow:activeState?"0 6px 18px rgba(15,23,42,0.06)":"none",
+    borderRadius:12,
+    padding:"10px 12px",
+    fontSize:12,
+    fontWeight:800,
+    fontFamily:"'Plus Jakarta Sans',sans-serif",
+    whiteSpace:"nowrap",
+    cursor:"pointer"
   });
   const renderRowHeader=()=>(
-    <div style={{display:"grid",gridTemplateColumns:"74px minmax(0,1.15fr) minmax(260px,0.95fr) 112px",gap:14,alignItems:"center",padding:"0 16px 8px",marginBottom:6}}>
+    <div style={{display:"grid",gridTemplateColumns:"76px minmax(0,1.45fr) 160px minmax(180px,0.9fr) 138px 84px",gap:16,alignItems:"center",padding:"0 16px 10px",marginBottom:4}}>
       <div/>
       <div style={{fontSize:10.5,fontWeight:800,color:"var(--sub)",letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Wine</div>
-      <div style={{fontSize:10.5,fontWeight:800,color:"var(--sub)",letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Cellar Context</div>
+      <div style={{fontSize:10.5,fontWeight:800,color:"var(--sub)",letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Cellaring</div>
+      <div style={{fontSize:10.5,fontWeight:800,color:"var(--sub)",letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Storage</div>
+      <div style={{fontSize:10.5,fontWeight:800,color:"var(--sub)",letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Value</div>
       <div style={{fontSize:10.5,fontWeight:800,color:"var(--sub)",letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:"'Plus Jakarta Sans',sans-serif",textAlign:"right"}}>Stock</div>
     </div>
   );
@@ -4574,91 +4607,72 @@ const CollectionScreen=({wines,onAdd,onUpdate,onDelete,onAdjustConsumption,onDup
         </div>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:desktop?"repeat(6,minmax(0,1fr))":"repeat(2,minmax(0,1fr))",gap:10,marginBottom:16}}>
-        {[
-          {label:"Visible wines",value:visibleCount,meta:`of ${col.length} total`},
-          {label:"Bottles on hand",value:visibleBottles,meta:stockView==="unconsumed"?"active stock":"full history"},
-          {label:"On-hand value",value:`$${visibleValue.toLocaleString(undefined,{maximumFractionDigits:0})}`,meta:"RRP basis"},
-          {label:"Ready now",value:visibleReadyCount,meta:"within window"},
-          {label:"Locations",value:locationCount||0,meta:locationCount===1?"single location":"multi-location"},
-          {label:"Filters",value:active?filterCount:0,meta:active?"active":"none"},
-        ].map(item=>(
-          <div key={item.label} style={metricTile}>
-            <div style={{fontSize:11.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{item.label}</div>
-            <div style={{fontSize:24,fontWeight:900,color:"var(--text)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.05,marginTop:8}}>{item.value}</div>
-            <div style={{fontSize:10.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:5}}>{item.meta}</div>
+      <div style={{display:"grid",gridTemplateColumns:desktop?"repeat(4,minmax(0,1fr))":"repeat(2,minmax(0,1fr))",gap:desktop?24:16,marginBottom:18,paddingBottom:16,borderBottom:"1px solid rgba(96,73,63,0.08)"}}>
+        {topStats.map((item,idx)=>(
+          <div key={item.label} style={{paddingRight:desktop&&idx<topStats.length-1?10:0}}>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:"0.04em",textTransform:"uppercase"}}>{item.label}</div>
+            <div style={{fontSize:desktop?31:26,fontWeight:900,color:"var(--text)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.02,marginTop:8}}>{item.value}</div>
+            <div style={{fontSize:11.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:6}}>{item.meta}</div>
           </div>
         ))}
       </div>
 
-      <div style={{...modulePanel,padding:desktop?"14px":"14px",marginBottom:12}}>
-        <div style={{display:"grid",gridTemplateColumns:desktop?"minmax(0,1.1fr) 170px 176px 110px auto":"1fr",gap:10,alignItems:"center"}}>
-          <div style={{position:"relative",minWidth:0}}>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search wines, varietals, origins, dates, locations…" style={{paddingLeft:40,height:48,background:"var(--card)"}}/>
-            <div style={{position:"absolute",left:13,top:"50%",transform:"translateY(-50%)",color:"var(--sub)",pointerEvents:"none"}}><Icon n="search" size={16}/></div>
+      <div style={{display:"grid",gridTemplateColumns:desktop?"minmax(0,1.3fr) auto auto auto":"1fr",gap:10,alignItems:"center",marginBottom:active?10:14}}>
+        <div style={{position:"relative",minWidth:0}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search wine, vintage, varietal, or origin" style={{paddingLeft:40,height:50,background:"var(--card)",boxShadow:"0 8px 22px rgba(15,23,42,0.04)"}}/>
+          <div style={{position:"absolute",left:13,top:"50%",transform:"translateY(-50%)",color:"var(--sub)",pointerEvents:"none"}}><Icon n="search" size={16}/></div>
+        </div>
+        <div style={{display:"inline-flex",alignItems:"center",gap:3,padding:3,borderRadius:14,background:"var(--surface)",border:"1px solid var(--border)"}}>
+          <button type="button" onClick={()=>setStockView("all")} style={compactSwitch(stockView==="all")}>Full cellar</button>
+          <button type="button" onClick={()=>setStockView("unconsumed")} style={compactSwitch(stockView==="unconsumed")}>On hand</button>
+        </div>
+        {desktop?(
+          <div style={{display:"inline-flex",alignItems:"center",gap:3,padding:3,borderRadius:14,background:"var(--surface)",border:"1px solid var(--border)"}}>
+            <button type="button" onClick={()=>setLayoutMode("cards")} style={compactSwitch(layoutMode==="cards")}>Cards</button>
+            <button type="button" onClick={()=>setLayoutMode("rows")} style={compactSwitch(layoutMode==="rows")}>Rows</button>
           </div>
-          <div>
-            <SegmentedToggle
-              options={[
-                {value:"all",label:"Full Cellar"},
-                {value:"unconsumed",label:"On Hand"},
-              ]}
-              value={stockView}
-              onChange={setStockView}
-              minWidth={0}
-            />
-          </div>
-          {desktop?(
-            <div>
-              <SegmentedToggle
-                options={[
-                  {value:"cards",label:"Cards"},
-                  {value:"rows",label:"Rows"},
-                ]}
-                value={layoutMode}
-                onChange={setLayoutMode}
-                minWidth={0}
-              />
-            </div>
-          ):null}
-          <select value={filters.sort} onChange={e=>setFilters(p=>({...p,sort:e.target.value,sortDir:(e.target.value==="vintage"||e.target.value==="bottles")?(p.sort===e.target.value?p.sortDir:"desc"):p.sortDir}))} style={{background:"var(--card)",fontSize:12,fontWeight:800,padding:"10px 30px 10px 12px",height:48}}>
+        ):null}
+        <div style={{display:"flex",alignItems:"center",gap:8,justifyContent:desktop?"flex-end":"stretch",minWidth:0}}>
+          <select value={filters.sort} onChange={e=>setFilters(p=>({...p,sort:e.target.value,sortDir:(e.target.value==="vintage"||e.target.value==="bottles")?(p.sort===e.target.value?p.sortDir:"desc"):p.sortDir}))} style={{background:"var(--card)",fontSize:12,fontWeight:800,padding:"10px 30px 10px 12px",height:50,minWidth:desktop?132:0,boxShadow:"0 8px 22px rgba(15,23,42,0.04)"}}>
             {SORTS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
-          <div style={{display:"flex",alignItems:"center",gap:8,justifyContent:desktop?"flex-end":"stretch"}}>
-            {sortDirectionSupported&&(
-              <button
-                onClick={()=>setFilters(p=>({...p,sortDir:p.sortDir==="asc"?"desc":"asc"}))}
-                title="Sort direction"
-                style={{height:46,padding:"0 12px",borderRadius:12,border:"1px solid var(--border)",background:"var(--card)",color:"var(--text)",fontSize:12,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",cursor:"pointer",whiteSpace:"nowrap"}}
-              >
-                {desktop?sortDirectionLabelDesktop:sortDirectionLabelMobile}
-              </button>
-            )}
-            <button onClick={()=>setFilterOpen(true)} style={{...toolbarIconButton(active),width:46}}>
-              <Icon n="filter" size={17}/>
-              {filterCount>0&&<div style={{position:"absolute",top:-5,right:-5,minWidth:18,height:18,padding:"0 4px",borderRadius:999,background:"var(--accent)",color:"#fff",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid var(--bg)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{filterCount}</div>}
+          {sortDirectionSupported&&(
+            <button
+              onClick={()=>setFilters(p=>({...p,sortDir:p.sortDir==="asc"?"desc":"asc"}))}
+              title="Sort direction"
+              style={{height:50,padding:"0 12px",borderRadius:13,border:"1px solid var(--border)",background:"var(--card)",color:"var(--text)",fontSize:12,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",cursor:"pointer",whiteSpace:"nowrap",boxShadow:"0 8px 22px rgba(15,23,42,0.04)"}}
+            >
+              {sortDirectionLabelMobile}
             </button>
-          </div>
+          )}
+          <button onClick={()=>setFilterOpen(true)} style={{height:50,padding:"0 14px",borderRadius:13,border:active?"1px solid rgba(var(--accentRgb),0.22)":"1px solid var(--border)",background:"var(--card)",display:"inline-flex",alignItems:"center",gap:8,color:active?"var(--accent)":"var(--text)",fontSize:12,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",boxShadow:"0 8px 22px rgba(15,23,42,0.04)"}}>
+            <Icon n="filter" size={16}/>
+            <span>Filters</span>
+            {filterCount>0&&<span style={{minWidth:18,height:18,padding:"0 5px",borderRadius:999,background:"rgba(var(--accentRgb),0.1)",color:"var(--accent)",fontSize:10,fontWeight:900,display:"inline-flex",alignItems:"center",justifyContent:"center",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{filterCount}</span>}
+          </button>
         </div>
       </div>
 
       {active&&(
-        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:14}}>
-          <span style={{fontSize:11,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginRight:2}}>Active filters</span>
-          {filters.sort!=="name"&&<Chip label={SORTS.find(o=>o.value===filters.sort)?.label} onX={()=>setFilters(p=>({...p,sort:"name"}))}/>}
-          {filters.varietal&&<Chip label={filters.varietal} onX={()=>setFilters(p=>({...p,varietal:""}))}/>}
-          {filters.category&&<Chip label={filters.category} onX={()=>setFilters(p=>({...p,category:""}))}/>}
-          {filters.readiness&&<Chip label={{ready:"Ready",notReady:"Not Ready",past:"Past Peak",noWindow:"No Window"}[filters.readiness]||filters.readiness} onX={()=>setFilters(p=>({...p,readiness:""}))}/>}
-          {filters.priceBand&&<Chip label={{budget:"<$25",mid:"$25-$59",premium:"$60-$119",luxury:"$120+"}[filters.priceBand]||filters.priceBand} onX={()=>setFilters(p=>({...p,priceBand:""}))}/>}
-          {filters.region&&<Chip label={filters.region} onX={()=>setFilters(p=>({...p,region:""}))}/>}
-          {filters.country&&<Chip label={filters.country} onX={()=>setFilters(p=>({...p,country:""}))}/>}
-          {filters.location&&<Chip label={filters.location} onX={()=>setFilters(p=>({...p,location:"",section:""}))}/>}
-          {filters.section&&<Chip label={`Kennards: ${filters.section}`} onX={()=>setFilters(p=>({...p,section:""}))}/>}
-          {filters.addedRange&&<Chip label={{"1d":"Added 24h","7d":"Added 7d","30d":"Added 30d"}[filters.addedRange]||filters.addedRange} onX={()=>setFilters(p=>({...p,addedRange:""}))}/>}
-          {filters.updatedRange&&<Chip label={{"1d":"Updated 24h","7d":"Updated 7d","30d":"Updated 30d"}[filters.updatedRange]||filters.updatedRange} onX={()=>setFilters(p=>({...p,updatedRange:""}))}/>}
-          <button onClick={()=>setFilters(DEFAULT_FILTERS)} style={{padding:0,border:"none",background:"transparent",color:"var(--sub)",fontSize:12,cursor:"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif",textDecoration:"underline"}}>
-            Clear all
-          </button>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap",marginBottom:14,paddingBottom:13,borderBottom:"1px solid rgba(96,73,63,0.08)"}}>
+          <div style={{fontSize:12.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6}}>
+            {filterCount} {filterCount===1?"filter":"filters"} applied
+            {activeFilterSummary.length>0&&(
+              <span style={{color:"var(--text)",fontWeight:700}}>
+                {" · "}
+                {activeFilterSummary.slice(0,3).join(" · ")}
+                {activeFilterSummary.length>3?` +${activeFilterSummary.length-3} more`:""}
+              </span>
+            )}
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={()=>setFilterOpen(true)} style={{padding:0,border:"none",background:"transparent",color:"var(--text)",fontSize:12.5,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+              Edit filters
+            </button>
+            <button onClick={()=>setFilters(DEFAULT_FILTERS)} style={{padding:0,border:"none",background:"transparent",color:"var(--sub)",fontSize:12.5,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+              Clear all
+            </button>
+          </div>
         </div>
       )}
 
@@ -4673,16 +4687,12 @@ const CollectionScreen=({wines,onAdd,onUpdate,onDelete,onAdjustConsumption,onDup
           </div>
         </div>
       )}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:12,marginBottom:12,flexWrap:"wrap"}}>
-        <div>
-          <div style={{fontSize:11.5,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Inventory results</div>
-          <div style={{fontSize:13.5,color:"var(--text)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.55,marginTop:4}}>
-            {resultsSummaryCopy}
-          </div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:12,marginBottom:14,flexWrap:"wrap"}}>
+        <div style={{fontSize:13.5,color:"var(--text)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.55}}>
+          {resultsSummaryCopy}
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
-          <div style={{fontSize:12,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Mode: <span style={{color:"var(--text)",fontWeight:700}}>{resultModeLabel}</span></div>
-          <div style={{fontSize:12,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Sort: <span style={{color:"var(--text)",fontWeight:700}}>{SORTS.find(o=>o.value===filters.sort)?.label||"Name A–Z"}</span></div>
+        <div style={{fontSize:12,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+          {resultModeLabel}{hiddenConsumedCount>0?` · ${hiddenConsumedCount} consumed hidden`:``}
         </div>
       </div>
       {filt.length===0
@@ -4696,7 +4706,7 @@ const CollectionScreen=({wines,onAdd,onUpdate,onDelete,onAdjustConsumption,onDup
                       <span style={{width:8,height:8,borderRadius:"50%",background:"var(--accent)",boxShadow:"0 0 0 5px rgba(var(--accentRgb),0.12)"}}/>
                       <div style={{fontSize:12,fontWeight:900,color:"var(--text)",letterSpacing:"0.7px",textTransform:"uppercase",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{group.label}</div>
                     </div>
-                    <div style={{padding:"3px 9px",borderRadius:999,background:"var(--inputBg)",border:"1px solid var(--border)",fontSize:11,fontWeight:800,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{group.wines.length}</div>
+                    <div style={{fontSize:11.5,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{group.wines.length} wines</div>
                   </div>
                   {useRowLayout&&renderRowHeader()}
                   <div style={{display:"grid",gridTemplateColumns:useRowLayout?"1fr":(desktop?"repeat(auto-fill,minmax(320px,1fr))":"1fr"),gap:12}}>
