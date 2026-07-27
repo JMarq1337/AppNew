@@ -3,7 +3,8 @@ import { authApi, dbApi } from "./apiClient";
 import { wineHoldings2021 } from "./data/wineHoldings2021";
 import * as ExcelJSImport from "exceljs";
 
-const APP_VERSION = "8.46";
+const APP_VERSION = "9.0";
+const DEV_PREVIEW = import.meta.env.DEV && new URLSearchParams(window.location.search).get("preview")==="1";
 const ADMIN_PIN_DIGITS = 8;
 const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
 const CHANGE_LOG_KEY = "vino_change_log_v1";
@@ -2414,14 +2415,14 @@ const callAI=async(msg,wines,history=[],memory=[],profile={})=>{
 
 /* ── THEME ────────────────────────────────────────────────────── */
 const T=dark=>({
-  bg:dark?"#161110":"#FAF9F7",
-  surface:dark?"#1F1918":"#F5F3EF",
-  card:dark?"#27211F":"#FFFFFF",
-  border:dark?"rgba(246,238,230,0.09)":"#E7E2DA",
-  text:dark?"#F6EFE9":"#1D1A17",
-  sub:dark?"#B0A39A":"#6F685F",
-  inputBg:dark?"#2B2423":"#F7F5F2",
-  shadow:dark?"rgba(0,0,0,0.34)":"rgba(15,23,42,0.08)",
+  bg:dark?"#111111":"#F7F7F5",
+  surface:dark?"#1A1A19":"#F1F1EE",
+  card:dark?"#20201F":"#FFFFFF",
+  border:dark?"rgba(255,255,255,0.09)":"#E5E5E1",
+  text:dark?"#F5F5F2":"#181817",
+  sub:dark?"#A8A8A1":"#686864",
+  inputBg:dark?"#242423":"#F4F4F1",
+  shadow:dark?"rgba(0,0,0,0.34)":"rgba(20,20,18,0.07)",
 });
 
 const makeCSS=dark=>`
@@ -2456,20 +2457,20 @@ const makeCSS=dark=>`
     font-size:13.5px;
     color:${dark?"#F4ECE6":"#1F1915"};
     background:${dark?"#241E1D":"#FFFFFF"};
-    border:1px solid ${dark?"rgba(255,255,255,0.08)":"#E5E7E2"};
-    border-radius:12px;
+    border:1px solid ${dark?"rgba(255,255,255,0.08)":"#E2E2DE"};
+    border-radius:10px;
     padding:12px 14px;
     width:100%;
     outline:none;
     transition:border-color 0.2s,box-shadow 0.2s,background-color 0.2s,transform .12s;
     -webkit-appearance:none;
-    box-shadow:0 1px 0 rgba(255,255,255,0.72);
+    box-shadow:none;
     background-clip:padding-box;
   }
   input::placeholder,textarea::placeholder{color:${dark?"rgba(245,237,230,0.42)":"rgba(77,61,52,0.46)"};}
   input:focus,textarea:focus,select:focus{
     border-color:rgba(var(--accentRgb),0.28);
-    box-shadow:0 0 0 4px ${dark?"rgba(var(--accentRgb),.18)":"rgba(var(--accentRgb),.06)"};
+    box-shadow:0 0 0 3px ${dark?"rgba(var(--accentRgb),.18)":"rgba(var(--accentRgb),.07)"};
     background:${dark?"#28211F":"#FFFFFF"};
   }
   select option{background:${dark?"#201A1A":"#fff"};}
@@ -2518,10 +2519,10 @@ const WineTypePill=({type,label})=>{
 
 const Modal=({show,onClose,children,wide})=>{
   if(!show)return null;
-  const maxWidth=typeof wide==="number"?wide:(wide?920:520);
+  const maxWidth=typeof wide==="number"?wide:(wide?980:540);
   return(
-    <div style={{position:"fixed",inset:0,zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
-      <div style={{position:"absolute",inset:0,background:"rgba(17,20,24,0.24)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",animation:"fadeIn .2s"}}/>
+    <div style={{position:"fixed",inset:0,zIndex:9999,display:"flex",alignItems:window.innerWidth<768?"flex-end":"center",justifyContent:"center",padding:window.innerWidth<768?0:20}} onClick={onClose}>
+      <div style={{position:"absolute",inset:0,background:"rgba(17,17,16,0.3)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",animation:"fadeIn .2s"}}/>
       <div
         onClick={e=>e.stopPropagation()}
         style={{
@@ -2529,15 +2530,15 @@ const Modal=({show,onClose,children,wide})=>{
           width:"100%",
           maxWidth,
           background:"var(--card)",
-          borderRadius:26,
-          maxHeight:"90vh",
+          borderRadius:window.innerWidth<768?"18px 18px 0 0":18,
+          maxHeight:window.innerWidth<768?"92dvh":"90vh",
           overflowY:"auto",
-          animation:"modalIn .22s cubic-bezier(0.34,1.2,0.64,1)",
-          boxShadow:"0 36px 96px rgba(15,23,42,0.18)",
+          animation:"modalIn .2s cubic-bezier(0.22,1,0.36,1)",
+          boxShadow:"0 30px 80px rgba(15,23,42,0.16)",
           border:"1px solid rgba(17,24,39,0.08)",
         }}
       >
-        <div style={{padding:"24px 24px 26px"}}>{children}</div>
+        <div style={{padding:window.innerWidth<768?"20px 17px calc(22px + env(safe-area-inset-bottom, 0px))":"24px 26px 28px"}}>{children}</div>
       </div>
     </div>
   );
@@ -2553,7 +2554,7 @@ const ModalHeader=({title,onClose})=>(
       style={{
         background:"var(--surface)",
         border:"1px solid var(--border)",
-        borderRadius:12,
+        borderRadius:10,
         width:36,
         height:36,
         display:"flex",
@@ -2682,13 +2683,13 @@ const ReviewEntryEditor=({title,entry,onChange,suggestions=[],onRemove})=>(
 const Btn=({children,onClick,variant="primary",full,disabled,icon})=>{
   const s={
     primary:{background:"var(--accent)",color:"#fff",border:"1px solid rgba(var(--accentRgb),0.16)",boxShadow:"0 10px 22px rgba(var(--accentRgb),0.14)"},
-    secondary:{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",boxShadow:"0 4px 12px rgba(15,23,42,0.04)"},
+    secondary:{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",boxShadow:"none"},
     ghost:{background:"transparent",color:"var(--sub)",border:"1px solid transparent"},
     danger:{background:"#FFF4F1",color:"#9B5B42",border:"1px solid rgba(155,91,66,0.14)"},
   };
   return(
     <button disabled={disabled} onClick={disabled?undefined:onClick}
-      style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:7,padding:"12px 16px",borderRadius:14,fontSize:12.5,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:"0.01em",width:full?"100%":"auto",transition:"opacity 0.15s,transform 0.1s,box-shadow 0.15s",opacity:disabled?0.4:1,...s[variant]}}
+      style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:7,padding:"12px 16px",borderRadius:10,fontSize:12.5,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:"0.01em",width:full?"100%":"auto",transition:"opacity 0.15s,transform 0.1s,box-shadow 0.15s",opacity:disabled?0.4:1,...s[variant]}}
       onMouseEnter={e=>{if(!disabled){e.currentTarget.style.opacity="0.92";e.currentTarget.style.transform="translateY(-1px)"}}}
       onMouseLeave={e=>{e.currentTarget.style.opacity="1";e.currentTarget.style.transform="none"}}>
       {icon&&<Icon n={icon} size={15} color="currentColor"/>}{children}
@@ -2989,6 +2990,7 @@ const WineCard=({wine,onClick,mode="card"})=>{
   if(mode==="list"){
     return(
       <div
+        className="vino-wine-card vino-wine-card--list"
         onClick={onClick}
         style={{...cardBase,display:"grid",gridTemplateColumns:"76px minmax(0,1.45fr) 160px minmax(180px,0.9fr) 138px 84px",gap:16,alignItems:"center",minHeight:94,padding:"14px 16px"}}
         onMouseEnter={hoverIn}
@@ -3038,6 +3040,7 @@ const WineCard=({wine,onClick,mode="card"})=>{
   }
   return(
     <div
+      className="vino-wine-card vino-wine-card--grid"
       onClick={onClick}
       style={{...cardBase,display:"grid",gridTemplateColumns:"76px minmax(0,1fr)",gap:16,alignItems:"start",minHeight:126}}
       onMouseEnter={hoverIn}
@@ -4587,91 +4590,84 @@ const CollectionScreen=({wines,onAdd,onUpdate,onDelete,onAdjustConsumption,onDup
     return()=>clearTimeout(t);
   },[recentDelete]);
   return(
-    <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:18,marginBottom:16,flexWrap:"wrap"}}>
-        <div style={{maxWidth:720}}>
-          <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:700,color:"var(--sub)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:6}}>Cellar</div>
-          <div style={{fontFamily:DISPLAY_FONT,fontSize:desktop?42:34,fontWeight:800,color:"var(--text)",lineHeight:0.96,letterSpacing:"-0.03em"}}>Cellar Inventory</div>
-          <div style={{fontSize:13.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:10,lineHeight:1.65}}>
-            {inventoryContextCopy}
-          </div>
+    <div className="vino-page vino-cellar-page">
+      <header className="vino-page-header">
+        <div>
+          <div className="vino-page-eyebrow">Cellar</div>
+          <h1 className="vino-page-title">Your collection</h1>
+          <p className="vino-page-copy">{inventoryContextCopy}</p>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-          <button onClick={()=>setRewindOpen(true)} style={{...toolbarIconButton(deletedWines.length>0),width:46}} title="Rewind deleted wines">
+        <div className="vino-page-actions">
+          <button className="vino-icon-button" onClick={()=>setRewindOpen(true)} title="Rewind deleted wines">
             <Icon n="rewind" size={17}/>
             {deletedWines.length>0&&<div style={{position:"absolute",top:-4,right:-4,minWidth:17,height:17,padding:"0 4px",borderRadius:999,background:"var(--accent)",color:"#fff",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid var(--bg)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{Math.min(99,deletedWines.length)}</div>}
           </button>
-          <button onClick={()=>setAdding(true)} style={{padding:"12px 16px",borderRadius:12,border:"1px solid rgba(var(--accentRgb),0.16)",background:"var(--accent)",color:"#fff",fontSize:12.5,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",boxShadow:"0 10px 22px rgba(var(--accentRgb),0.14)",cursor:"pointer",whiteSpace:"nowrap"}}>
+          <button className="vino-primary-button" onClick={()=>setAdding(true)}>
+            <Icon n="plus" size={15}/>
             Add Wine
           </button>
         </div>
-      </div>
+      </header>
 
-      <div style={{display:"grid",gridTemplateColumns:desktop?"repeat(4,minmax(0,1fr))":"repeat(2,minmax(0,1fr))",gap:desktop?24:16,marginBottom:18,paddingBottom:16,borderBottom:"1px solid rgba(96,73,63,0.08)"}}>
-        {topStats.map((item,idx)=>(
-          <div key={item.label} style={{paddingRight:desktop&&idx<topStats.length-1?10:0}}>
-            <div style={{fontSize:11,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:"0.04em",textTransform:"uppercase"}}>{item.label}</div>
-            <div style={{fontSize:desktop?31:26,fontWeight:900,color:"var(--text)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.02,marginTop:8}}>{item.value}</div>
-            <div style={{fontSize:11.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:6}}>{item.meta}</div>
+      <div className="vino-metric-strip">
+        {topStats.map(item=>(
+          <div className="vino-metric" key={item.label}>
+            <div className="vino-metric__label">{item.label}</div>
+            <div className="vino-metric__value">{item.value}</div>
+            <div className="vino-metric__meta">{item.meta}</div>
           </div>
         ))}
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:desktop?"minmax(0,1.3fr) auto auto auto":"1fr",gap:10,alignItems:"center",marginBottom:active?10:14}}>
-        <div style={{position:"relative",minWidth:0}}>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search wine, vintage, varietal, or origin" style={{paddingLeft:40,height:50,background:"var(--card)",boxShadow:"0 8px 22px rgba(15,23,42,0.04)"}}/>
-          <div style={{position:"absolute",left:13,top:"50%",transform:"translateY(-50%)",color:"var(--sub)",pointerEvents:"none"}}><Icon n="search" size={16}/></div>
+      <div className="vino-workbar">
+        <div className="vino-search">
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search wine, vintage, varietal, or origin"/>
+          <div className="vino-search__icon"><Icon n="search" size={16}/></div>
         </div>
-        <div style={{display:"inline-flex",alignItems:"center",gap:3,padding:3,borderRadius:14,background:"var(--surface)",border:"1px solid var(--border)"}}>
-          <button type="button" onClick={()=>setStockView("all")} style={compactSwitch(stockView==="all")}>Full cellar</button>
-          <button type="button" onClick={()=>setStockView("unconsumed")} style={compactSwitch(stockView==="unconsumed")}>On hand</button>
-        </div>
-        {desktop?(
-          <div style={{display:"inline-flex",alignItems:"center",gap:3,padding:3,borderRadius:14,background:"var(--surface)",border:"1px solid var(--border)"}}>
-            <button type="button" onClick={()=>setLayoutMode("cards")} style={compactSwitch(layoutMode==="cards")}>Cards</button>
-            <button type="button" onClick={()=>setLayoutMode("rows")} style={compactSwitch(layoutMode==="rows")}>Rows</button>
+        <div className="vino-workbar__controls">
+          <div className="vino-control-group">
+            <button type="button" className={`vino-control-tab ${stockView==="all"?"is-active":""}`} onClick={()=>setStockView("all")}>All</button>
+            <button type="button" className={`vino-control-tab ${stockView==="unconsumed"?"is-active":""}`} onClick={()=>setStockView("unconsumed")}>On hand</button>
           </div>
-        ):null}
-        <div style={{display:"flex",alignItems:"center",gap:8,justifyContent:desktop?"flex-end":"stretch",minWidth:0}}>
-          <select value={filters.sort} onChange={e=>setFilters(p=>({...p,sort:e.target.value,sortDir:(e.target.value==="vintage"||e.target.value==="bottles")?(p.sort===e.target.value?p.sortDir:"desc"):p.sortDir}))} style={{background:"var(--card)",fontSize:12,fontWeight:800,padding:"10px 30px 10px 12px",height:50,minWidth:desktop?132:0,boxShadow:"0 8px 22px rgba(15,23,42,0.04)"}}>
-            {SORTS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-          {sortDirectionSupported&&(
-            <button
-              onClick={()=>setFilters(p=>({...p,sortDir:p.sortDir==="asc"?"desc":"asc"}))}
-              title="Sort direction"
-              style={{height:50,padding:"0 12px",borderRadius:13,border:"1px solid var(--border)",background:"var(--card)",color:"var(--text)",fontSize:12,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",cursor:"pointer",whiteSpace:"nowrap",boxShadow:"0 8px 22px rgba(15,23,42,0.04)"}}
-            >
-              {sortDirectionLabelMobile}
-            </button>
+          {desktop&&(
+            <div className="vino-control-group vino-view-switch">
+              <button type="button" className={`vino-control-tab ${layoutMode==="cards"?"is-active":""}`} onClick={()=>setLayoutMode("cards")}>Grid</button>
+              <button type="button" className={`vino-control-tab ${layoutMode==="rows"?"is-active":""}`} onClick={()=>setLayoutMode("rows")}>List</button>
+            </div>
           )}
-          <button onClick={()=>setFilterOpen(true)} style={{height:50,padding:"0 14px",borderRadius:13,border:active?"1px solid rgba(var(--accentRgb),0.22)":"1px solid var(--border)",background:"var(--card)",display:"inline-flex",alignItems:"center",gap:8,color:active?"var(--accent)":"var(--text)",fontSize:12,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",boxShadow:"0 8px 22px rgba(15,23,42,0.04)"}}>
-            <Icon n="filter" size={16}/>
-            <span>Filters</span>
-            {filterCount>0&&<span style={{minWidth:18,height:18,padding:"0 5px",borderRadius:999,background:"rgba(var(--accentRgb),0.1)",color:"var(--accent)",fontSize:10,fontWeight:900,display:"inline-flex",alignItems:"center",justifyContent:"center",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{filterCount}</span>}
-          </button>
+          <div className="vino-sort-filter">
+            <select value={filters.sort} onChange={e=>setFilters(p=>({...p,sort:e.target.value,sortDir:(e.target.value==="vintage"||e.target.value==="bottles")?(p.sort===e.target.value?p.sortDir:"desc"):p.sortDir}))}>
+              {SORTS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            {sortDirectionSupported&&(
+              <button className="vino-secondary-button" onClick={()=>setFilters(p=>({...p,sortDir:p.sortDir==="asc"?"desc":"asc"}))} title="Sort direction">
+                {sortDirectionLabelMobile}
+              </button>
+            )}
+            <button className="vino-secondary-button" onClick={()=>setFilterOpen(true)}>
+              <Icon n="filter" size={15}/>
+              <span>Filter</span>
+              {filterCount>0&&<span style={{color:"var(--accent)"}}>{filterCount}</span>}
+            </button>
+          </div>
         </div>
       </div>
 
       {active&&(
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap",marginBottom:14,paddingBottom:13,borderBottom:"1px solid rgba(96,73,63,0.08)"}}>
-          <div style={{fontSize:12.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6}}>
+        <div className="vino-filter-summary">
+          <div>
             {filterCount} {filterCount===1?"filter":"filters"} applied
             {activeFilterSummary.length>0&&(
-              <span style={{color:"var(--text)",fontWeight:700}}>
+              <strong>
                 {" · "}
                 {activeFilterSummary.slice(0,3).join(" · ")}
                 {activeFilterSummary.length>3?` +${activeFilterSummary.length-3} more`:""}
-              </span>
+              </strong>
             )}
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:14}}>
-            <button onClick={()=>setFilterOpen(true)} style={{padding:0,border:"none",background:"transparent",color:"var(--text)",fontSize:12.5,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-              Edit filters
-            </button>
-            <button onClick={()=>setFilters(DEFAULT_FILTERS)} style={{padding:0,border:"none",background:"transparent",color:"var(--sub)",fontSize:12.5,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-              Clear all
-            </button>
+          <div className="vino-inline-actions">
+            <button className="vino-inline-link" onClick={()=>setFilterOpen(true)}>Edit</button>
+            <button className="vino-inline-link" onClick={()=>setFilters(DEFAULT_FILTERS)}>Clear</button>
           </div>
         </div>
       )}
@@ -4687,11 +4683,9 @@ const CollectionScreen=({wines,onAdd,onUpdate,onDelete,onAdjustConsumption,onDup
           </div>
         </div>
       )}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:12,marginBottom:14,flexWrap:"wrap"}}>
-        <div style={{fontSize:13.5,color:"var(--text)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.55}}>
-          {resultsSummaryCopy}
-        </div>
-        <div style={{fontSize:12,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+      <div className="vino-results-line">
+        <strong>{resultsSummaryCopy}</strong>
+        <div>
           {resultModeLabel}{hiddenConsumedCount>0?` · ${hiddenConsumedCount} consumed hidden`:``}
         </div>
       </div>
@@ -4709,7 +4703,7 @@ const CollectionScreen=({wines,onAdd,onUpdate,onDelete,onAdjustConsumption,onDup
                     <div style={{fontSize:11.5,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{group.wines.length} wines</div>
                   </div>
                   {useRowLayout&&renderRowHeader()}
-                  <div style={{display:"grid",gridTemplateColumns:useRowLayout?"1fr":(desktop?"repeat(auto-fill,minmax(320px,1fr))":"1fr"),gap:12}}>
+                  <div className={`vino-inventory-grid ${useRowLayout?"is-list":""}`}>
                     {group.wines.map(w=><WineCard key={w.id} wine={w} mode={useRowLayout?"list":"card"} onClick={()=>{setSel(w);setEditing(false);}}/>)}
                   </div>
                 </section>
@@ -4717,7 +4711,7 @@ const CollectionScreen=({wines,onAdd,onUpdate,onDelete,onAdjustConsumption,onDup
             </div>
           : <div>
               {useRowLayout&&renderRowHeader()}
-              <div style={{display:"grid",gridTemplateColumns:useRowLayout?"1fr":(desktop?"repeat(auto-fill,minmax(320px,1fr))":"1fr"),gap:12}}>
+              <div className={`vino-inventory-grid ${useRowLayout?"is-list":""}`}>
                 {filt.map(w=><WineCard key={w.id} wine={w} mode={useRowLayout?"list":"card"} onClick={()=>{setSel(w);setEditing(false);}}/>)}
               </div>
             </div>
@@ -5241,31 +5235,32 @@ const AuditScreen=({wines,desktop,onSetWineBottles,onRemoveWine,onRevokeAudit,on
   };
 
   return(
-    <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:16,marginBottom:18,flexWrap:"wrap"}}>
+    <div className="vino-page vino-audit-page">
+      <header className="vino-page-header">
         <div>
-          <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:700,color:"var(--sub)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Audit</div>
-          <div style={{fontFamily:DISPLAY_FONT,fontSize:desktop?42:34,fontWeight:800,color:"var(--text)",lineHeight:0.95,letterSpacing:"-0.03em"}}>Inventory Verification</div>
-          <div style={{fontSize:13,color:"var(--sub)",marginTop:8,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Verify stock by location, reconcile missing bottles, and keep the cellar aligned with physical inventory.</div>
+          <div className="vino-page-eyebrow">Audit</div>
+          <h1 className="vino-page-title">Verify inventory</h1>
+          <p className="vino-page-copy">Check physical stock by location and reconcile differences with the live cellar.</p>
         </div>
-        <div style={{display:"flex",justifyContent:desktop?"flex-end":"stretch"}}>
-          <button onClick={openStartAudit} style={{...auditPrimaryBtn,minWidth:desktop?154:"100%"}}>
+        <div className="vino-page-actions">
+          <button className="vino-primary-button" onClick={openStartAudit}>
+            <Icon n="plus" size={15}/>
             Start Audit
           </button>
         </div>
-      </div>
+      </header>
 
-      <div style={{display:"grid",gridTemplateColumns:desktop?"repeat(4,minmax(0,1fr))":"repeat(2,minmax(0,1fr))",gap:10,marginBottom:16}}>
+      <div className="vino-audit-metrics">
         {[
           {label:"Saved Audits",value:audits.length,meta:"all sessions"},
           {label:"Locations",value:locations.length||1,meta:"available to audit"},
           {label:"Wines",value:col.length,meta:"in active cellar"},
           {label:"Sync",value:syncState==="ready"?"Cloud":"Local",meta:syncState==="ready"?"remote audits":"fallback mode"},
         ].map(item=>(
-          <div key={item.label} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:18,padding:"15px 16px 14px",boxShadow:"0 8px 22px rgba(15,23,42,0.04)"}}>
-            <div style={{fontSize:11.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{item.label}</div>
-            <div style={{fontSize:24,fontWeight:900,color:"var(--text)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.05,marginTop:8}}>{item.value}</div>
-            <div style={{fontSize:10.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:5}}>{item.meta}</div>
+          <div key={item.label} className="vino-audit-metric">
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+            <small>{item.meta}</small>
           </div>
         ))}
       </div>
@@ -5276,7 +5271,7 @@ const AuditScreen=({wines,desktop,onSetWineBottles,onRemoveWine,onRevokeAudit,on
         </div>
       )}
       {syncState!=="ready"&&(
-        <div style={{background:"rgba(184,50,50,0.08)",border:"1px solid rgba(184,50,50,0.22)",borderRadius:14,padding:"11px 13px",marginBottom:12,fontSize:12.5,color:"#9C2B2B",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.55}}>
+        <div className="vino-audit-notice">
           {syncState==="checking"
             ? "Checking audit cloud sync…"
             : "Audit cloud sync is unavailable. Audits are saving locally on this device until the Supabase audits table is configured."}
@@ -5286,7 +5281,7 @@ const AuditScreen=({wines,desktop,onSetWineBottles,onRemoveWine,onRevokeAudit,on
       {!activeAudit&&(
         <>
           {auditsSorted.length===0?(
-            <div style={{...auditPanel,padding:"22px 20px"}}>
+            <div className="vino-empty-section">
               <div style={{fontSize:16,fontWeight:800,color:"var(--text)",fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:6}}>No audits yet</div>
               <div style={{fontSize:13,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6}}>
                 Start an audit to verify real stock and bring the cellar back in line where needed.
@@ -5812,64 +5807,62 @@ const AIScreen=({wines,profile,setProfile})=>{
     setTimeout(()=>scrollRef.current?.scrollTo({top:99999,behavior:"smooth"}),80);
   },[input,wines,loading,activeSession,sommelierMemory,profile,syncSommelierMemory]);
   return(
-    <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:16,marginBottom:18,flexWrap:"wrap"}}>
-        <div style={{maxWidth:760}}>
-          <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:700,color:"var(--sub)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Sommelier</div>
-          <div style={{fontFamily:DISPLAY_FONT,fontSize:compact?38:44,fontWeight:800,color:"var(--text)",lineHeight:0.94,letterSpacing:"-0.03em"}}>Cellar Intelligence</div>
-          <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:13.5,color:"var(--sub)",marginTop:10,lineHeight:1.6}}>
-            Ask naturally about opening recommendations, readiness, timing, stock, or collection patterns using live cellar context.
-          </div>
+    <div className="vino-page vino-sommelier-page">
+      <header className="vino-page-header">
+        <div>
+          <div className="vino-page-eyebrow">Sommelier</div>
+          <h1 className="vino-page-title">Ask your cellar</h1>
+          <p className="vino-page-copy">Recommendations and answers grounded in your live collection, drinking windows, and notes.</p>
         </div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          <button onClick={()=>setHistoryOpen(true)} style={{padding:"10px 12px",borderRadius:12,border:"1px solid var(--border)",background:"var(--card)",color:"var(--text)",fontSize:12,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",boxShadow:"0 4px 12px rgba(15,23,42,0.04)"}}>History</button>
-          <button onClick={newChat} style={{padding:"10px 12px",borderRadius:12,border:"1px solid rgba(var(--accentRgb),0.16)",background:"var(--accent)",color:"#fff",fontSize:12,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",boxShadow:"0 10px 22px rgba(var(--accentRgb),0.14)"}}>New Chat</button>
+        <div className="vino-page-actions">
+          <button className="vino-secondary-button" onClick={()=>setHistoryOpen(true)}>History</button>
+          <button className="vino-primary-button" onClick={newChat}><Icon n="plus" size={15}/>New Chat</button>
         </div>
-      </div>
+      </header>
 
-      <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"300px minmax(0,1fr)",gap:14,minHeight:compact?"auto":"calc(100vh - 220px)"}}>
-        <aside style={{display:"grid",gap:12,alignSelf:"start"}}>
-          <div style={{...aiPanel,padding:"16px 16px 14px"}}>
-            <div style={{fontSize:11.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:10}}>Cellar Snapshot</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:10}}>
+      <div className="vino-sommelier-layout">
+        <aside className="vino-sommelier-aside">
+          <section className="vino-sommelier-section">
+            <div className="vino-section-label">Cellar Snapshot</div>
+            <div className="vino-sommelier-snapshot">
               {[
                 {label:"Bottles On Hand",value:bottlesOnHand},
                 {label:"Ready Tonight",value:readyCount},
                 {label:"Near Peak End",value:pastPeakSoonCount},
                 {label:"Primary Location",value:topLocation},
               ].map(item=>(
-                <div key={item.label} style={{padding:"12px 12px 10px",borderRadius:14,background:"var(--surface)",border:"1px solid var(--border)"}}>
-                  <div style={{fontSize:10.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:5}}>{item.label}</div>
-                  <div style={{fontSize:item.label==="Primary Location"?14:22,color:"var(--text)",fontWeight:900,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.05,whiteSpace:item.label==="Primary Location"?"nowrap":"normal",overflow:item.label==="Primary Location"?"hidden":"visible",textOverflow:item.label==="Primary Location"?"ellipsis":"clip"}}>{item.value}</div>
+                <div key={item.label} className="vino-sommelier-stat">
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
 
-          <div style={{...aiPanel,padding:"16px 16px 14px"}}>
-            <div style={{fontSize:11.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:10}}>Suggested Prompts</div>
-            <div style={{display:"grid",gap:8}}>
+          <section className="vino-sommelier-section">
+            <div className="vino-section-label">Suggested Prompts</div>
+            <div className="vino-sommelier-prompts">
               {chips.map(c=>(
                 <button
                   key={c}
                   onClick={()=>send(c)}
-                  style={{padding:"12px 13px",borderRadius:12,border:"1px solid var(--border)",background:"var(--card)",color:"var(--text)",fontSize:12.5,textAlign:"left",cursor:"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700,lineHeight:1.5}}
+                  className="vino-sommelier-prompt"
                 >
-                  {c}
+                  <span>{c}</span><Icon n="chevR" size={12}/>
                 </button>
               ))}
             </div>
-          </div>
+          </section>
 
-          <div style={{...aiPanel,padding:"16px 16px 14px"}}>
+          <section className="vino-sommelier-section">
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
-              <div style={{fontSize:11.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Sommelier Memory</div>
+              <div className="vino-section-label" style={{marginBottom:0}}>Sommelier Memory</div>
               <div style={{fontSize:11.5,color:"var(--accent)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{sommelierMemory.length||0}</div>
             </div>
             {sommelierMemory.length?(
               <div style={{display:"grid",gap:7}}>
                 {sommelierMemory.slice(0,4).map((item,idx)=>(
-                  <div key={`${item}-${idx}`} style={{padding:"10px 11px",borderRadius:12,background:"var(--surface)",border:"1px solid var(--border)",fontSize:12,color:"var(--text)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.45}}>
+                  <div key={`${item}-${idx}`} style={{padding:"8px 0",borderTop:idx?"1px solid var(--border)":"0",fontSize:12,color:"var(--text)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.45}}>
                     {item}
                   </div>
                 ))}
@@ -5879,10 +5872,10 @@ const AIScreen=({wines,profile,setProfile})=>{
                 Save preferences in chat using “remember …” and Vinology will keep them for future recommendations.
               </div>
             )}
-          </div>
+          </section>
         </aside>
 
-        <section style={{...aiPanel,borderRadius:20,display:"flex",flexDirection:"column",minHeight:compact?620:0}}>
+        <section className="vino-sommelier-chat" style={{...aiPanel,borderRadius:20,display:"flex",flexDirection:"column",minHeight:compact?620:0}}>
           <div style={{padding:"16px 18px 14px",borderBottom:"1px solid rgba(96,73,63,0.08)"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
               <div>
@@ -6014,32 +6007,16 @@ const JournalWineCard=({wine,onClick,active=false})=>{
   return(
     <button
       onClick={onClick}
-      style={{
-        width:"100%",
-        textAlign:"left",
-        background:active?"var(--surface)":"var(--card)",
-        borderRadius:16,
-        padding:"14px 15px",
-        border:active?"1px solid rgba(var(--accentRgb),0.16)":"1px solid var(--border)",
-        marginBottom:8,
-        transition:"transform 0.14s,box-shadow 0.14s,border-color 0.14s",
-        boxShadow:"0 4px 12px rgba(15,23,42,0.04)",
-        cursor:"pointer",
-      }}
-      onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-1px)";}}
-      onMouseLeave={e=>{e.currentTarget.style.transform="none";}}
+      className={`vino-journal-row ${active?"is-active":""}`}
     >
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
         <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:15,fontWeight:800,color:"var(--text)",lineHeight:1.3}}>{wine.name}</div>
-        {wine.vintage&&<span style={{padding:"2px 8px",borderRadius:999,background:"var(--inputBg)",border:"1px solid var(--border)",fontSize:11,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",whiteSpace:"nowrap"}}>{wine.vintage}</span>}
+        {wine.vintage&&<span className="vino-journal-vintage">{wine.vintage}</span>}
       </div>
-      <div style={{marginTop:7,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-        <WineTypePill type={type} label={varietal}/>
-        {hasJournalText&&(
-          <div title="Has notes" style={{width:22,height:22,borderRadius:999,border:"1px solid var(--border)",background:"var(--surface)",display:"inline-flex",alignItems:"center",justifyContent:"center",color:"var(--text)",opacity:0.84}}>
-            <Icon n="note" size={12}/>
-          </div>
-        )}
+      <div className="vino-journal-row__meta">
+        <span style={{color:WINE_TYPE_COLORS[type]?.dot||"var(--sub)"}}>●</span>
+        <span>{varietal}</span>
+        {hasJournalText&&<Icon n="note" size={12}/>}
       </div>
       <div style={{marginTop:8,fontSize:12,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.4}}>
         {(geo.region||geo.country)||"—"} · {updatedLabel}
@@ -6248,7 +6225,7 @@ const JournalScreen=({wines,onUpdate,desktop})=>{
   const listTitle=`${filtered.length} ${filtered.length===1?"wine":"wines"}`;
 
   const Controls=(
-    <div style={{position:"sticky",top:0,zIndex:2,background:"var(--card)",borderBottom:"1px solid rgba(96,73,63,0.08)",padding:"16px 16px 14px"}}>
+    <div className="vino-journal-controls">
       <div style={{marginBottom:9}}>
         <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:700,color:"var(--sub)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:6}}>Journal Index</div>
         <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:18,fontWeight:800,color:"var(--text)",lineHeight:1.1}}>{listTitle}</div>
@@ -6284,14 +6261,14 @@ const JournalScreen=({wines,onUpdate,desktop})=>{
   );
 
   return(
-    <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:16,marginBottom:18,flexWrap:"wrap"}}>
+    <div className="vino-page vino-journal-page">
+      <header className="vino-page-header">
         <div>
-          <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:700,color:"var(--sub)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Journal</div>
-          <div style={{fontFamily:DISPLAY_FONT,fontSize:desktop?42:34,fontWeight:800,color:"var(--text)",lineHeight:0.95,letterSpacing:"-0.03em"}}>Tasting Notes</div>
-          <div style={{fontSize:13,color:"var(--sub)",marginTop:8,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Private tasting context, review history, and personal notes across the cellar.</div>
+          <div className="vino-page-eyebrow">Journal</div>
+          <h1 className="vino-page-title">Tasting notes</h1>
+          <p className="vino-page-copy">Private reviews, memories, and tasting context from across the collection.</p>
         </div>
-      </div>
+      </header>
       {desktop
         ? <div style={{display:"grid",gridTemplateColumns:"minmax(320px,392px) minmax(0,1fr)",gap:16,alignItems:"start"}}>
             <div style={{background:"var(--card)",borderRadius:20,border:"1px solid var(--border)",boxShadow:"0 8px 20px rgba(15,23,42,0.05)",overflow:"hidden",maxHeight:"calc(100vh - 188px)",display:"flex",flexDirection:"column"}}>
@@ -6329,7 +6306,7 @@ const JournalScreen=({wines,onUpdate,desktop})=>{
             </div>
           </div>
         : <>
-            <div style={{marginBottom:14,background:"var(--card)",borderRadius:20,border:"1px solid var(--border)",boxShadow:"0 8px 20px rgba(15,23,42,0.05)",overflow:"hidden"}}>
+            <div className="vino-journal-mobile-controls">
               {Controls}
             </div>
             {filtered.length===0
@@ -6339,7 +6316,7 @@ const JournalScreen=({wines,onUpdate,desktop})=>{
                     <section key={group.key}>
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,padding:"0 2px"}}>
                         <div style={{fontSize:12,fontWeight:800,color:"var(--text)",letterSpacing:"0.6px",textTransform:"uppercase",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{group.label}</div>
-                        <div style={{padding:"2px 8px",borderRadius:999,background:"var(--inputBg)",border:"1px solid var(--border)",fontSize:11,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{group.wines.length}</div>
+                        <div style={{fontSize:11,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{group.wines.length}</div>
                       </div>
                       <div>
                         {group.wines.map(w=><JournalWineCard key={w.id} wine={w} active={selectedId===w.id} onClick={()=>{setSelectedId(w.id);setEditing(false);}}/>)}
@@ -7198,7 +7175,7 @@ const ExploreWineries=({onBack})=>{
   };
 
   return(
-    <div style={{animation:"fadeUp 0.2s ease"}}>
+    <div className="vino-page vino-settings-page" style={{animation:"fadeUp 0.2s ease"}}>
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
         <button onClick={onBack} style={{background:"var(--inputBg)",border:"none",borderRadius:10,width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--sub)",cursor:"pointer",flexShrink:0,fontSize:20}}>←</button>
         <div>
@@ -7388,15 +7365,17 @@ const SettingsPanel=({onBack,profile,setProfile,theme,setTheme,authRole,onSavePi
     fontFamily:"'Plus Jakarta Sans',sans-serif",
   };
   return(
-    <div style={{animation:"fadeUp 0.2s ease"}}>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18}}>
-        <button onClick={onBack} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,width:42,height:42,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--sub)",cursor:"pointer",flexShrink:0,fontSize:20,boxShadow:"0 4px 12px rgba(15,23,42,0.04)"}}>←</button>
-        <div style={{minWidth:0}}>
-          <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:700,color:"var(--sub)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:3}}>Profile & Security</div>
-          <div style={{fontFamily:DISPLAY_FONT,fontSize:compact?32:36,fontWeight:800,color:"var(--text)",lineHeight:0.98,letterSpacing:"-0.03em"}}>Winery Settings</div>
-          <div style={{fontSize:13,color:"var(--sub)",marginTop:5,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Identity, appearance, and collector-grade access controls.</div>
+    <div className="vino-page vino-settings-page" style={{animation:"fadeUp 0.2s ease"}}>
+      <header className="vino-page-header">
+        <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+          <button className="vino-icon-button" onClick={onBack}>←</button>
+          <div>
+            <div className="vino-page-eyebrow">Profile & Security</div>
+            <h1 className="vino-page-title">Winery settings</h1>
+            <p className="vino-page-copy">Identity, appearance, access, and session controls.</p>
+          </div>
         </div>
-      </div>
+      </header>
 
       <div style={{background:"var(--card)",borderRadius:22,padding:compact?"18px":"22px 24px",marginBottom:14,boxShadow:"0 8px 20px rgba(15,23,42,0.05)",position:"relative",overflow:"hidden",border:"1px solid var(--border)"}}>
         <div style={{position:"relative",zIndex:1,display:"grid",gridTemplateColumns:compact?"1fr":"minmax(0,1fr) auto",gap:14,alignItems:"center"}}>
@@ -7830,10 +7809,10 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
     {label:"Consumed Bottles",value:consumedBottles},
   ];
   const secondaryMetricCards=[
-    {label:"Ready to Drink",value:`${readyCount}`,onClick:()=>setKpiListOpen({title:"Ready to Drink",rows:readyWines,subtitle:"Wines currently in drinking window."})},
-    {label:"Past Peak Risk",value:`${pastPeakSoonCount}`,onClick:()=>setKpiListOpen({title:"Past Peak Risk (12 Months)",rows:pastPeakSoonWines,subtitle:"Wines whose drink window ends this year or next year."})},
-    {label:"Low Stock",value:`${lowStockCount}`,onClick:()=>setKpiListOpen({title:"Low Stock Wines",rows:lowStockWines,subtitle:"Wines with one or two bottles left."})},
-    {label:"Average Bottle RRP",value:`$${avgBottle.toLocaleString(undefined,{maximumFractionDigits:0})}`},
+    {label:"Purchased",value:purchasedBottles},
+    {label:"Consumed",value:consumedBottles},
+    {label:"Past peak",value:pastPeakSoonCount,onClick:()=>setKpiListOpen({title:"Past Peak Risk (12 Months)",rows:pastPeakSoonWines,subtitle:"Wines whose drink window ends this year or next year."})},
+    {label:"Locations",value:cellarLocationCount},
   ];
   const readinessRows=[
     {label:"Ready now",count:readyCount,color:readinessPalette.ready},
@@ -7858,7 +7837,7 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
   if(view==="explore")return <ExploreWineries onBack={()=>setView("main")}/>;
 
   return(
-    <div>
+    <div className="vino-page vino-summary-page">
       {settingsToast&&(
         <div style={{position:"sticky",top:14,zIndex:5,display:"flex",justifyContent:"center",pointerEvents:"none",marginBottom:10}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"11px 14px",borderRadius:999,background:"rgba(20,22,24,0.88)",color:"#fff",boxShadow:"0 16px 34px rgba(0,0,0,0.18)",fontSize:12.5,fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)"}}>
@@ -7867,74 +7846,51 @@ const ProfileScreen=({wines,notes,theme,setTheme,profile,setProfile,onNavigateTa
           </div>
         </div>
       )}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:16,marginBottom:18,flexWrap:"wrap"}}>
+      <header className="vino-page-header">
         <div>
-          <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:700,color:"var(--sub)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Summary</div>
-          <div style={{fontFamily:DISPLAY_FONT,fontSize:compact?38:44,fontWeight:800,color:"var(--text)",lineHeight:0.94,letterSpacing:"-0.03em"}}>{profile.cellarName||"My Cellar"}</div>
-          <div style={{fontSize:13,color:"var(--sub)",marginTop:8,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Value, readiness, composition, and recent movement across the cellar.</div>
+          <div className="vino-page-eyebrow">Summary</div>
+          <h1 className="vino-page-title">{profile.cellarName||"My Cellar"}</h1>
+          <p className="vino-page-copy">Value, readiness, composition, and recent movement across the cellar.</p>
         </div>
-        <button onClick={()=>setView("settings")} style={headerActionButton}
-          onMouseEnter={e=>{e.currentTarget.style.background="rgba(var(--accentRgb),0.08)";e.currentTarget.style.color="var(--accent)";}}
-          onMouseLeave={e=>{e.currentTarget.style.background="var(--card)";e.currentTarget.style.color="var(--sub)";}}>
+        <button className="vino-secondary-button" onClick={()=>setView("settings")}>
           <Icon n="settings" size={18}/>
-          {!compact&&<span style={{fontSize:12.5,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Settings</span>}
+          {!compact&&<span>Settings</span>}
         </button>
-      </div>
+      </header>
 
-      <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"minmax(320px,1.2fr) repeat(4,minmax(0,1fr))",gap:12,marginBottom:14}}>
-        <section style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:20,padding:"20px 20px 18px",boxShadow:"0 8px 22px rgba(15,23,42,0.04)"}}>
-          <div style={{display:"flex",alignItems:"flex-start",gap:14,minWidth:0}}>
-            <div style={{width:64,height:64,borderRadius:"50%",background:"var(--surface)",overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",border:"1px solid var(--border)"}}>
-              {profile.avatar?<img src={profile.avatar} alt="avatar" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<Icon n="user" size={26} color="var(--accent)"/>}
-            </div>
-            <div style={{minWidth:0}}>
-              <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:11,fontWeight:700,color:"var(--sub)",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>Collector Profile</div>
-              <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:21,fontWeight:800,color:"var(--text)",lineHeight:1.1}}>{displayName}</div>
-              {identityCopy&&<div style={{fontSize:12.5,color:"var(--sub)",marginTop:6,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.6,maxWidth:520}}>{identityCopy}</div>}
-              {!!summaryFacts.length&&(
-                <div style={{marginTop:10,fontSize:12.5,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1.65}}>
-                  {summaryFacts.join(" · ")}
-                </div>
-              )}
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:12,marginTop:16,paddingTop:16,borderTop:"1px solid rgba(96,73,63,0.08)"}}>
-            {[
-              {label:"On-Hand Bottles",value:bottlesLeft},
-              {label:"Ready to Drink",value:readyCount},
-              {label:"Past Peak Risk",value:pastPeakSoonCount},
-              {label:"Locations",value:cellarLocationCount},
-            ].map(item=>(
-              <div key={item.label}>
-                <div style={{fontSize:10.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",marginBottom:5}}>{item.label}</div>
-                <div style={{fontSize:20,color:"var(--text)",fontWeight:900,fontFamily:"'Plus Jakarta Sans',sans-serif",lineHeight:1}}>{item.value}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-        {primaryTopMetrics.map(item=>(
-          <div key={item.label} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:20,padding:"16px 16px 14px",boxShadow:"0 8px 22px rgba(15,23,42,0.04)"}}>
-            <div style={{fontSize:11.5,fontWeight:700,color:"var(--sub)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{item.label}</div>
-            <div style={{fontSize:compact?22:24,fontWeight:900,color:"var(--text)",lineHeight:1.04,fontFamily:"'Plus Jakarta Sans',sans-serif",marginTop:8}}>{item.value}</div>
-          </div>
-        ))}
-      </div>
+      <section className="vino-summary-identity">
+        <div className="vino-summary-avatar">
+          {profile.avatar?<img src={profile.avatar} alt="avatar"/>:<Icon n="user" size={24} color="var(--accent)"/>}
+        </div>
+        <div>
+          <div className="vino-summary-name">{displayName}</div>
+          {identityCopy&&<div className="vino-summary-role">{identityCopy}</div>}
+          {!!summaryFacts.length&&<div className="vino-summary-facts">{summaryFacts.join(" · ")}</div>}
+        </div>
+      </section>
 
-      <div style={{display:"grid",gridTemplateColumns:compact?"repeat(2,minmax(0,1fr))":"repeat(4,minmax(0,1fr))",gap:12,marginBottom:16}}>
-        {secondaryMetricCards.map(card=>(
-          <button
-            key={card.label}
-            onClick={card.onClick}
-            style={{padding:"15px 16px 14px",textAlign:"left",cursor:card.onClick?"pointer":"default",width:"100%",border:"1px solid var(--border)",background:"var(--card)",borderRadius:18,boxShadow:"0 8px 22px rgba(15,23,42,0.04)"}}
-          >
-            <div style={{fontSize:11.5,color:"var(--sub)",fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{card.label}</div>
-            <div style={{fontSize:26,fontWeight:900,color:"var(--text)",lineHeight:1.02,marginTop:8,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{card.value}</div>
-            <div style={{fontSize:11,color:card.onClick?"var(--accent)":"var(--sub)",marginTop:6,fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700}}>
-              {card.onClick?"Open list":"Cellar average"}
-            </div>
+      <section className="vino-summary-primary-metrics">
+        {[
+          primaryTopMetrics[0],
+          primaryTopMetrics[1],
+          {label:"On-Hand Bottles",value:bottlesLeft},
+          {label:"Ready to Drink",value:readyCount,onClick:()=>setKpiListOpen({title:"Ready to Drink",rows:readyWines,subtitle:"Wines currently in drinking window."})},
+        ].map(item=>(
+          <button key={item.label} type="button" onClick={item.onClick} className="vino-summary-primary-metric">
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
           </button>
         ))}
-      </div>
+      </section>
+
+      <section className="vino-summary-secondary-metrics">
+        {secondaryMetricCards.map(item=>(
+          <button key={item.label} type="button" onClick={item.onClick} className="vino-summary-secondary-metric">
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+          </button>
+        ))}
+      </section>
 
       <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"1.05fr 0.95fr",gap:14,marginBottom:14}}>
         <section style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:20,padding:"18px 18px 16px",boxShadow:"0 8px 22px rgba(15,23,42,0.04)"}}>
@@ -8161,13 +8117,20 @@ export default function App(){
   const [themeMode,setThemeMode]=useState(()=>{try{return localStorage.getItem("vino_theme")||"system"}catch{return"system"}});
   const [sysDark,setSysDark]=useState(()=>window.matchMedia?.("(prefers-color-scheme:dark)").matches??false);
   const [tab,setTab]=useState("collection");
-  const [wines,setWines]=useState([]);
-  const [notes,setNotes]=useState([]);
+  const [wines,setWines]=useState(()=>DEV_PREVIEW?SEED_WINES:[]);
+  const [notes,setNotes]=useState(()=>DEV_PREVIEW?SEED_NOTES:[]);
   const [grapeAliasMap,setGrapeAliasMap]=useState({});
   const grapeAliasMapRef=useRef({});
   const aliasSyncEnabledRef=useRef(false);
   const [deletedWines,setDeletedWines]=useState(()=>readDeletedWines());
-  const [profile,setProfileState]=useState(DEFAULT_PROFILE);
+  const [profile,setProfileState]=useState(()=>DEV_PREVIEW?{
+    ...DEFAULT_PROFILE,
+    name:"Neale",
+    surname:"Marquis",
+    cellarName:"Vinology Private Cellar",
+    description:"Private collector",
+    country:"Australia",
+  }:DEFAULT_PROFILE);
   const [savedLocations,setSavedLocations]=useState(()=>readSavedLocations());
   const [ready,setReady]=useState(false);
   const [splashPhase,setSplashPhase]=useState("boot"); // boot | setup | setupPin | unlock | entering | done
@@ -8320,6 +8283,25 @@ export default function App(){
   },[isAuthenticated,relockToPin]);
   useEffect(()=>{
     async function load(){
+      if(DEV_PREVIEW){
+        setWines(SEED_WINES);
+        setNotes(SEED_NOTES);
+        setProfileState(prev=>({
+          ...prev,
+          name:"Neale",
+          surname:"Marquis",
+          cellarName:"Vinology Private Cellar",
+          description:"Private collector",
+          country:"Australia",
+        }));
+        setOName("Neale");
+        setOCellar("Vinology Private Cellar");
+        setIsNewUser(false);
+        setIsAuthenticated(true);
+        setReady(true);
+        setSplashPhase("done");
+        return;
+      }
       const normalizeLegacyWineRows=rows=>(rows||[]).map(w=>{
         if(!w || !w.wishlist) return w;
         const legacyBottles=Math.max(1,Math.round(safeNum(w.bottles)||0)||1);
@@ -9469,96 +9451,70 @@ export default function App(){
   const displayName=[profile.name,profile.surname].filter(Boolean).join(" ")||profile.name||"Winemaker";
 
   if(isDesktop) return(
-    <div style={{...cssVars,background:"var(--bg)",height:"100vh",display:"flex",overflow:"hidden",fontFamily:"'Plus Jakarta Sans',sans-serif",color:"var(--text)"}}>
+    <div className="vino-app vino-desktop-shell" style={cssVars}>
       <style>{CSS}</style>
-      <div style={{width:228,flexShrink:0,background:"#FFFFFF",display:"flex",flexDirection:"column",padding:"24px 16px 16px",borderRight:"1px solid var(--border)"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,paddingLeft:8}}>
+      <aside className="vino-sidebar">
+        <div className="vino-brand">
           <BrandLogo size={32}/>
-          <span style={{fontSize:20,fontWeight:800,color:"var(--text)",letterSpacing:"-0.5px"}}>Vinology</span>
+          <span className="vino-brand__name">Vinology</span>
         </div>
-        <div style={{paddingLeft:8,fontSize:10,color:"var(--sub)",fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:16}}>Workspace</div>
-        <nav style={{flex:1,display:"flex",flexDirection:"column",gap:4}}>
+        <div className="vino-sidebar__label">Cellar workspace</div>
+        <nav className="vino-sidebar__nav" aria-label="Primary navigation">
           {TABS.map(tb=>{
             const active=tab===tb.id;
             return(
-              <button
-                key={tb.id}
-                onClick={()=>setTab(tb.id)}
-                style={{
-                  position:"relative",
-                  display:"flex",
-                  alignItems:"center",
-                  gap:11,
-                  padding:"12px 12px 12px 14px",
-                  borderRadius:12,
-                  border:"1px solid transparent",
-                  background:active?"rgba(var(--accentRgb),0.06)":"transparent",
-                  color:active?"var(--text)":"var(--sub)",
-                  fontFamily:"'Plus Jakarta Sans',sans-serif",
-                  fontWeight:active?750:600,
-                  fontSize:13,
-                  cursor:"pointer",
-                  transition:"all 0.16s ease",
-                  textAlign:"left",
-                  width:"100%",
-                  boxShadow:"none",
-                }}
-                onMouseEnter={e=>{
-                  if(active) return;
-                  e.currentTarget.style.background="var(--surface)";
-                }}
-                onMouseLeave={e=>{
-                  if(active) return;
-                  e.currentTarget.style.background="transparent";
-                }}
-              >
-                <span style={{position:"absolute",left:2,top:8,bottom:8,width:3,borderRadius:99,background:"var(--accent)",opacity:active?1:0,transition:"opacity .16s"}}/>
-                <Icon n={tb.ic} size={17} color={active?"var(--accent)":"var(--sub)"}/>
-                {tb.label}
+              <button key={tb.id} className={`vino-nav-item ${active?"is-active":""}`} onClick={()=>setTab(tb.id)}>
+                <Icon n={tb.ic} size={17} color={active?"var(--accent)":"currentColor"}/>
+                <span>{tb.label}</span>
               </button>
             );
           })}
         </nav>
-        <div style={{marginTop:14,borderTop:"1px solid var(--border)",paddingTop:14}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 8px",borderRadius:14,background:"var(--surface)"}}>
-          <div style={{width:36,height:36,borderRadius:"50%",background:"var(--card)",overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",border:"1px solid var(--border)"}}>
+        <div className="vino-sidebar__profile">
+          <div className="vino-profile-avatar">
             {profile.avatar?<img src={profile.avatar} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<Icon n="user" size={15} color="var(--accent)"/>}
           </div>
           <div style={{minWidth:0}}>
-            <div style={{fontSize:13,fontWeight:700,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{displayName}</div>
-            <div style={{fontSize:11,color:"var(--sub)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{profile.cellarName||profile.description||"My Cellar"}</div>
-          </div>
+            <div className="vino-sidebar__profile-name">{displayName}</div>
+            <div className="vino-sidebar__profile-meta">{profile.cellarName||profile.description||"My Cellar"}</div>
           </div>
         </div>
-      </div>
-      <div data-scroll="main" style={{flex:1,overflowY:"auto",overflowX:"hidden",WebkitOverflowScrolling:"touch"}}>
-        <div style={{maxWidth:1420,margin:"0 auto",padding:"28px 40px 60px"}}>
-          {screens}
-        </div>
-      </div>
+      </aside>
+      <main className="vino-workspace" data-scroll="main">
+        <div className="vino-workspace__inner">{screens}</div>
+      </main>
     </div>
   );
 
+  const activeMobileTab=TABS.find(tb=>tb.id===tab)||TABS[0];
   return(
-    <div style={{...cssVars,background:"var(--bg)",height:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif",color:"var(--text)",maxWidth:480,margin:"0 auto",display:"flex",flexDirection:"column",overflow:"hidden",position:"fixed",left:"50%",transform:"translateX(-50%)",width:"100%"}}>
+    <div className="vino-app vino-mobile-shell" style={cssVars}>
       <style>{CSS}</style>
-      <div data-scroll="main" style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"20px 20px 96px",WebkitOverflowScrolling:"touch"}}>
-        {screens}
-      </div>
-      <div style={{position:"fixed",bottom:8,left:"50%",transform:"translateX(-50%)",width:"calc(100% - 14px)",maxWidth:466,background:"rgba(255,255,255,0.94)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid var(--border)",borderRadius:20,padding:"8px 6px calc(10px + env(safe-area-inset-bottom, 0px))",zIndex:100,boxShadow:"0 10px 24px rgba(15,23,42,0.08)"}}>
-        <div style={{display:"flex",justifyContent:"space-around"}}>
-          {TABS.map(tb=>{
-            const active=tab===tb.id;
-            return(
-              <button key={tb.id} onClick={()=>setTab(tb.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,background:active?"var(--surface)":"transparent",border:active?"1px solid rgba(17,24,39,0.08)":"1px solid transparent",borderRadius:14,padding:"7px 12px 6px",color:active?"var(--text)":"var(--sub)",transition:"all 0.18s",fontFamily:"'Plus Jakarta Sans',sans-serif",cursor:"pointer",boxShadow:"none"}}>
-                <div style={{transform:active?"scale(1.06)":"scale(1)",transition:"transform 0.18s"}}><Icon n={tb.ic} size={21} color={active?"var(--accent)":"var(--sub)"}/></div>
-                <span style={{fontSize:9.5,fontWeight:active?700:500,letterSpacing:"0.3px"}}>{tb.label}</span>
-                <div style={{width:4,height:4,borderRadius:"50%",background:active?"var(--accent)":"transparent",transition:"background 0.18s"}}/>
-              </button>
-            );
-          })}
+      <header className="vino-mobile-topbar">
+        <div className="vino-mobile-brand">
+          <BrandLogo size={27}/>
+          <div>
+            <div className="vino-mobile-brand__name">Vinology</div>
+            <div className="vino-mobile-brand__section">{activeMobileTab.label}</div>
+          </div>
         </div>
-      </div>
+        <div className="vino-profile-avatar" style={{width:34,height:34}}>
+          {profile.avatar?<img src={profile.avatar} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<Icon n="user" size={14} color="var(--accent)"/>}
+        </div>
+      </header>
+      <main className="vino-mobile-content" data-scroll="main">{screens}</main>
+      <nav className="vino-mobile-nav" aria-label="Primary navigation">
+        {TABS.map(tb=>{
+          const active=tab===tb.id;
+          return(
+            <button key={tb.id} className={`vino-mobile-nav__item ${active?"is-active":""}`} onClick={()=>setTab(tb.id)}>
+              <Icon n={tb.ic} size={20} color="currentColor"/>
+              <span>{tb.label}</span>
+              <span className="vino-mobile-nav__mark"/>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }

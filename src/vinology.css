@@ -1,0 +1,1145 @@
+:root {
+  color-scheme: light;
+}
+
+html {
+  background: #f7f7f5;
+}
+
+body {
+  min-width: 320px;
+  overscroll-behavior: none;
+}
+
+.vino-app {
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.vino-app button,
+.vino-app input,
+.vino-app select,
+.vino-app textarea {
+  font-family: inherit;
+}
+
+.vino-desktop-shell {
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.vino-sidebar {
+  min-width: 0;
+  padding: 28px 18px 18px;
+  background: #f4f4f1;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.vino-brand {
+  min-height: 48px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.vino-brand__name {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+
+.vino-sidebar__label {
+  margin: 20px 10px 10px;
+  color: var(--sub);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.vino-sidebar__nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.vino-nav-item {
+  position: relative;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--sub);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 13px;
+  font-weight: 650;
+  text-align: left;
+}
+
+.vino-nav-item::before {
+  position: absolute;
+  left: 0;
+  width: 2px;
+  height: 20px;
+  border-radius: 99px;
+  background: var(--accent);
+  content: "";
+  opacity: 0;
+  transform: scaleY(0.45);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.vino-nav-item:hover {
+  background: rgba(24, 24, 23, 0.035);
+  color: var(--text);
+}
+
+.vino-nav-item.is-active {
+  background: rgba(var(--accentRgb), 0.065);
+  color: var(--text);
+  font-weight: 760;
+}
+
+.vino-nav-item.is-active::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.vino-sidebar__profile {
+  margin-top: 18px;
+  padding: 17px 9px 2px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.vino-profile-avatar {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.vino-sidebar__profile-name {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vino-sidebar__profile-meta {
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--sub);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vino-workspace {
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 76% -20%, rgba(var(--accentRgb), 0.035), transparent 38%),
+    var(--bg);
+}
+
+.vino-workspace__inner {
+  width: min(100%, 1480px);
+  margin: 0 auto;
+  padding: 34px 42px 72px;
+}
+
+.vino-page {
+  min-width: 0;
+  animation: vino-page-in 260ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+@keyframes vino-page-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.vino-page-header {
+  margin-bottom: 24px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.vino-page-eyebrow {
+  margin-bottom: 8px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.vino-page-title {
+  color: var(--text);
+  font-size: clamp(34px, 3.2vw, 48px);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+}
+
+.vino-page-copy {
+  max-width: 660px;
+  margin-top: 9px;
+  color: var(--sub);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.vino-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.vino-primary-button,
+.vino-secondary-button,
+.vino-icon-button {
+  min-height: 44px;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.vino-primary-button {
+  padding: 0 16px;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(var(--accentRgb), 0.13);
+}
+
+.vino-secondary-button {
+  padding: 0 14px;
+  background: #fff;
+  color: var(--text);
+}
+
+.vino-icon-button {
+  width: 44px;
+  padding: 0;
+  background: #fff;
+  color: var(--sub);
+  position: relative;
+}
+
+.vino-primary-button:hover,
+.vino-secondary-button:hover,
+.vino-icon-button:hover {
+  transform: translateY(-1px);
+}
+
+.vino-metric-strip {
+  margin: 0 0 18px;
+  padding: 0 0 18px;
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 30px;
+}
+
+.vino-metric {
+  min-width: 0;
+}
+
+.vino-metric__label {
+  color: var(--sub);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vino-metric__value {
+  margin-top: 8px;
+  color: var(--text);
+  font-size: 30px;
+  font-weight: 850;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.vino-metric__meta {
+  margin-top: 6px;
+  color: var(--sub);
+  font-size: 11px;
+}
+
+.vino-workbar {
+  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+}
+
+.vino-workbar__controls {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.vino-search {
+  position: relative;
+  min-width: 0;
+}
+
+.vino-search input {
+  height: 48px;
+  padding-left: 42px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.vino-search__icon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  color: var(--sub);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.vino-control-group {
+  min-height: 48px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f1f1ee;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.vino-control-tab {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--sub);
+  font-size: 11.5px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.vino-control-tab.is-active {
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(20, 20, 18, 0.06);
+}
+
+.vino-sort-filter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.vino-sort-filter select,
+.vino-sort-filter button {
+  height: 48px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.vino-filter-summary,
+.vino-results-line {
+  min-height: 30px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--sub);
+  font-size: 11.5px;
+}
+
+.vino-filter-summary {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.vino-filter-summary strong,
+.vino-results-line strong {
+  color: var(--text);
+}
+
+.vino-inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.vino-inline-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--sub);
+  font-size: 11.5px;
+  font-weight: 750;
+}
+
+.vino-inline-link:hover {
+  color: var(--accent);
+}
+
+.vino-inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 10px;
+}
+
+.vino-inventory-grid.is-list {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.vino-wine-card {
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+.vino-wine-card:hover {
+  border-color: rgba(var(--accentRgb), 0.22) !important;
+  box-shadow: 0 12px 28px rgba(20, 20, 18, 0.06) !important;
+}
+
+.vino-section {
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+.vino-section + .vino-section {
+  margin-top: 28px;
+}
+
+.vino-section__head {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.vino-section__title {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.vino-section__copy {
+  margin-top: 5px;
+  color: var(--sub);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.vino-panel {
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.vino-page section[style*="box-shadow"],
+.vino-page div[style*="box-shadow: 0 8px 20px"],
+.vino-page div[style*="box-shadow: 0 8px 22px"] {
+  box-shadow: none !important;
+}
+
+.vino-page section[style*="border-radius: 20px"],
+.vino-page div[style*="border-radius: 20px"] {
+  border-radius: 15px !important;
+}
+
+.vino-mobile-shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.vino-mobile-topbar {
+  min-height: 58px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 17px 10px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(247, 247, 245, 0.94);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 20;
+}
+
+.vino-mobile-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.vino-mobile-brand__name {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.vino-mobile-brand__section {
+  color: var(--sub);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.vino-mobile-content {
+  flex: 1;
+  min-height: 0;
+  padding: 22px 17px calc(86px + env(safe-area-inset-bottom, 0px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.vino-mobile-nav {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  min-height: 68px;
+  padding: 7px 8px calc(7px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.vino-mobile-nav__item {
+  min-width: 0;
+  padding: 5px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--sub);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.vino-mobile-nav__item.is-active {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.vino-mobile-nav__mark {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+}
+
+.vino-mobile-nav__item.is-active .vino-mobile-nav__mark {
+  opacity: 1;
+}
+
+.vino-summary-identity {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 26px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.vino-summary-avatar {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: 50%;
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.vino-summary-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vino-summary-name {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.vino-summary-role,
+.vino-summary-facts {
+  color: var(--sub);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.vino-summary-facts {
+  margin-top: 3px;
+}
+
+.vino-summary-primary-metrics,
+.vino-summary-secondary-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: 1px solid var(--border);
+}
+
+.vino-summary-primary-metrics {
+  margin-bottom: 0;
+  padding-bottom: 24px;
+}
+
+.vino-summary-secondary-metrics {
+  margin-bottom: 28px;
+  padding: 15px 0 18px;
+}
+
+.vino-summary-primary-metric,
+.vino-summary-secondary-metric {
+  min-width: 0;
+  padding: 0 22px;
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: default;
+}
+
+.vino-summary-primary-metric:first-child,
+.vino-summary-secondary-metric:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.vino-summary-primary-metric:last-child,
+.vino-summary-secondary-metric:last-child {
+  padding-right: 0;
+}
+
+.vino-summary-primary-metric span,
+.vino-summary-secondary-metric span {
+  display: block;
+  color: var(--sub);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.vino-summary-primary-metric strong {
+  display: block;
+  margin-top: 7px;
+  font-size: clamp(22px, 2.1vw, 32px);
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.vino-summary-secondary-metric {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vino-summary-secondary-metric strong {
+  font-size: 18px;
+  letter-spacing: -0.03em;
+}
+
+.vino-audit-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 22px;
+  padding: 4px 0 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.vino-audit-metric {
+  min-width: 0;
+  padding: 0 22px;
+  border-left: 1px solid var(--border);
+}
+
+.vino-audit-metric:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.vino-audit-metric span,
+.vino-audit-metric small {
+  display: block;
+  color: var(--sub);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.vino-audit-metric strong {
+  display: block;
+  margin: 7px 0 4px;
+  color: var(--text);
+  font-size: 25px;
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.vino-audit-metric small {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.vino-audit-notice {
+  margin-bottom: 18px;
+  padding: 0 0 0 12px;
+  border-left: 2px solid #9b5b42;
+  color: #8a4330;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.vino-empty-section {
+  padding: 22px 0;
+  border-top: 1px solid var(--border);
+}
+
+.vino-section-label {
+  margin-bottom: 11px;
+  color: var(--sub);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.vino-sommelier-layout {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+  gap: 28px;
+  min-height: calc(100vh - 220px);
+}
+
+.vino-sommelier-aside {
+  align-self: start;
+}
+
+.vino-sommelier-section {
+  padding: 18px 0;
+  border-top: 1px solid var(--border);
+}
+
+.vino-sommelier-section:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.vino-sommelier-snapshot {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.vino-sommelier-stat {
+  min-width: 0;
+  padding: 10px 12px 12px 0;
+}
+
+.vino-sommelier-stat:nth-child(even) {
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
+.vino-sommelier-stat:nth-child(n + 3) {
+  border-top: 1px solid var(--border);
+}
+
+.vino-sommelier-stat span {
+  display: block;
+  color: var(--sub);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.vino-sommelier-stat strong {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vino-sommelier-prompts {
+  border-bottom: 1px solid var(--border);
+}
+
+.vino-sommelier-prompt {
+  width: 100%;
+  padding: 11px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vino-sommelier-prompt:hover {
+  color: var(--accent);
+}
+
+.vino-sommelier-chat {
+  overflow: hidden;
+}
+
+.vino-journal-controls {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+
+.vino-journal-row {
+  width: 100%;
+  padding: 14px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.vino-journal-row:hover,
+.vino-journal-row.is-active {
+  background: var(--surface);
+}
+
+.vino-journal-vintage {
+  color: var(--sub);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.vino-journal-row__meta {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--sub);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.vino-journal-row__meta > :first-child {
+  font-size: 8px;
+}
+
+.vino-journal-mobile-controls {
+  margin-bottom: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.vino-journal-mobile-controls .vino-journal-controls {
+  position: static;
+  padding: 16px 0 18px;
+  background: transparent;
+}
+
+@media (max-width: 1080px) {
+  .vino-desktop-shell {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+
+  .vino-workspace__inner {
+    padding-right: 28px;
+    padding-left: 28px;
+  }
+
+  .vino-workbar {
+    grid-template-columns: minmax(260px, 1fr) auto;
+  }
+
+  .vino-workbar .vino-view-switch {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .vino-page {
+    width: 100%;
+  }
+
+  .vino-page-header {
+    margin-bottom: 18px;
+    align-items: flex-start;
+  }
+
+  .vino-page-eyebrow {
+    margin-bottom: 6px;
+    font-size: 9px;
+  }
+
+  .vino-page-title {
+    font-size: 32px;
+    line-height: 1;
+  }
+
+  .vino-page-copy {
+    display: none;
+  }
+
+  .vino-page-actions {
+    gap: 6px;
+  }
+
+  .vino-primary-button {
+    min-height: 42px;
+    padding: 0 13px;
+  }
+
+  .vino-icon-button {
+    width: 42px;
+    min-height: 42px;
+  }
+
+  .vino-metric-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 22px;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+  }
+
+  .vino-metric:nth-child(n + 3) {
+    display: none;
+  }
+
+  .vino-metric__value {
+    font-size: 26px;
+  }
+
+  .vino-workbar {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .vino-workbar__controls {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .vino-workbar__controls::-webkit-scrollbar {
+    display: none;
+  }
+
+  .vino-control-group {
+    flex-shrink: 0;
+  }
+
+  .vino-sort-filter {
+    justify-content: flex-start;
+    flex-shrink: 0;
+  }
+
+  .vino-sort-filter select {
+    width: 122px;
+  }
+
+  .vino-filter-summary,
+  .vino-results-line {
+    align-items: flex-start;
+    line-height: 1.45;
+  }
+
+  .vino-filter-summary > :first-child,
+  .vino-results-line > :last-child {
+    min-width: 0;
+  }
+
+  .vino-results-line > :last-child {
+    display: none;
+  }
+
+  .vino-inline-actions {
+    gap: 10px;
+  }
+
+  .vino-inventory-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  .vino-wine-card {
+    border-radius: 13px !important;
+  }
+
+  .vino-summary-identity {
+    margin-bottom: 20px;
+    padding-bottom: 18px;
+  }
+
+  .vino-summary-primary-metrics,
+  .vino-summary-secondary-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vino-summary-primary-metric,
+  .vino-summary-secondary-metric {
+    padding: 13px 12px;
+    border-left: 0;
+  }
+
+  .vino-summary-primary-metric:nth-child(even),
+  .vino-summary-secondary-metric:nth-child(even) {
+    border-left: 1px solid var(--border);
+  }
+
+  .vino-summary-primary-metric:nth-child(n + 3),
+  .vino-summary-secondary-metric:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+
+  .vino-summary-primary-metric:first-child,
+  .vino-summary-secondary-metric:first-child {
+    padding-left: 0;
+  }
+
+  .vino-summary-primary-metric:nth-child(3),
+  .vino-summary-secondary-metric:nth-child(3) {
+    padding-left: 0;
+  }
+
+  .vino-summary-primary-metric strong {
+    font-size: 24px;
+  }
+
+  .vino-audit-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vino-audit-metric {
+    padding: 13px 12px;
+    border-left: 0;
+  }
+
+  .vino-audit-metric:nth-child(even) {
+    border-left: 1px solid var(--border);
+  }
+
+  .vino-audit-metric:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+
+  .vino-audit-metric:first-child,
+  .vino-audit-metric:nth-child(3) {
+    padding-left: 0;
+  }
+
+  .vino-sommelier-layout {
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .vino-page section[style*="border-radius: 20px"],
+  .vino-page div[style*="border-radius: 20px"] {
+    border-radius: 13px !important;
+  }
+
+  .vino-sommelier-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    min-height: auto;
+  }
+
+  .vino-sommelier-aside {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vino-sommelier-section {
+    padding: 16px 0;
+  }
+
+  .vino-sommelier-chat {
+    min-height: 560px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
